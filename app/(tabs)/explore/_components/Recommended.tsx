@@ -1,0 +1,151 @@
+import {
+	ImageBackground,
+	TouchableOpacity,
+	StyleSheet,
+	Text,
+	View,
+	Image,
+} from "react-native";
+import React from "react";
+import { Ionicons } from "@expo/vector-icons";
+import AttendeeAvatar from "./AttendeeAvatar";
+
+const Recommended = () => {
+	const mockImage = `https://picsum.photos/seed/${Math.random()}/200/300`;
+	return (
+		<View style={styles.container}>
+			{/* <View style={styles.imageContainer}> */}
+			<Image
+				source={{ uri: mockImage }}
+				style={styles.coverImage}
+				accessibilityLabel="Concert venue with lights"
+			/>
+			{/* </View> */}
+			<View style={styles.contentWrapper}>
+				<View style={styles.contentContainer}>
+					<View style={styles.infoContainer}>
+						<Text style={styles.title}>Tamino Tour 2024</Text>
+					</View>
+					<View style={styles.attendeesContainer}>
+						<AttendeeAvatar />
+						<Text style={styles.attendeesText}>+250 Going</Text>
+					</View>
+					<View style={styles.detailsContainer}>
+						<View style={styles.detailItem}>
+							<Ionicons name="calendar" />
+							<Text style={styles.detailText}>Dec 16, 2024</Text>
+						</View>
+						<View style={styles.detailItem}>
+							<Ionicons name="time-outline" />
+							<Text style={styles.detailText}>8:00 PM</Text>
+						</View>
+					</View>
+				</View>
+			</View>
+		</View>
+	);
+};
+
+export default Recommended;
+
+const styles = StyleSheet.create({
+	container: {
+		flexDirection: "row",
+		width: "100%",
+		padding: 5,
+		paddingVertical: 10,
+		position: "relative",
+		gap: 10,
+		fontFamily: "Poppins",
+	},
+	imageBackground: {
+		flex: 1,
+		width: "100%",
+		height: 500,
+		resizeMode: "cover",
+		borderRadius: 10,
+		overflow: "hidden",
+	},
+	imageContainer: {
+		width: "100%",
+		overflow: "hidden",
+		flex: 1,
+	},
+	coverImage: {
+		height: "auto",
+		width: "auto",
+		// resizeMode: "cover",
+		flex: 1,
+		borderRadius: 8,
+	},
+	contentWrapper: {
+		flex: 2,
+	},
+	contentContainer: {
+		flexDirection: "column",
+		justifyContent: "space-between",
+		alignItems: "flex-start",
+		paddingHorizontal: 8,
+		paddingRight: 2,
+		width: "100%",
+		gap: 2,
+	},
+	infoContainer: {
+		flexDirection: "column",
+		gap: 10,
+		width: 187,
+	},
+	title: {
+		color: "#000",
+		fontSize: 15,
+		fontWeight: "400",
+	},
+	detailsContainer: {
+		flexDirection: "row",
+		alignItems: "flex-start",
+		gap: 15,
+		opacity: 0.3,
+		justifyContent: "space-between",
+		width: "100%",
+	},
+	detailItem: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 3,
+	},
+	detailText: {
+		color: "#000",
+		fontSize: 11,
+	},
+	button: {
+		height: 46,
+		padding: 5,
+		paddingHorizontal: 14,
+		borderRadius: 5,
+		borderWidth: 0.5,
+		borderColor: "#457B9D",
+		flexDirection: "row",
+		justifyContent: "space-between",
+		alignItems: "center",
+	},
+	buttonText: {
+		color: "#457B9D",
+		fontSize: 14,
+		// fontWeight: "500",
+	},
+	attendeesContainer: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 6,
+		// paddingHorizontal: 10,
+		paddingVertical: 5,
+		borderRadius: 6,
+		// backgroundColor: "rgba(0,0,0,0.4)",
+	},
+	attendeesText: {
+		// color: "white",
+		fontWeight: "semibold",
+		fontSize: 11,
+		flex: 3,
+	},
+});
