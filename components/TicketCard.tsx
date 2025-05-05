@@ -52,7 +52,7 @@ const TicketCard: React.FC<TicketCardProps> = ({
             <Text style={styles.rateLabelText}>Rate</Text>
           </View>
           <View style={styles.rateAmount}>
-            <Text style={styles.rateAmountText}>{rate}</Text>
+            <Text style={styles.rateAmountText}>{rate} / Person</Text>
           </View>
         </View>
 
@@ -108,7 +108,7 @@ const styles = StyleSheet.create({
 	},
 	containerPressed: {
 		borderWidth: 2,
-		borderColor: "white",
+		borderColor: "gray",
 	},
 	card: {
 		width: "100%",
@@ -116,6 +116,8 @@ const styles = StyleSheet.create({
 		borderRadius: 12,
 		padding: 16,
 		overflow: "hidden",
+		borderColor: "#E5E7EB",
+		borderWidth: 2,
 	},
 	ticketType: {
 		marginBottom: 12,

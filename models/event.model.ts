@@ -1,8 +1,35 @@
 import { z } from "zod";
+import { SocialMediaLinksSchema, OrganizersSchema } from "./organizer.model";
+
+export const OrganizerProfileSchema = z.object({
+    id: z.number(),
+    name: z.string(),
+    description: z.string(),
+    logo_url: z.string().url({ message: "Invalid URL format" }),
+    contact_phone: z.string(),
+    website_url: z.string().url({ message: "Invalid URL format" }),
+    social_media_links: SocialMediaLinksSchema,
+    created_at: z.string().datetime({ message: "Invalid ISO 8601 datetime format" }),
+    updated_at: z.string().datetime({ message: "Invalid ISO 8601 datetime format" }),
+    user: z.number(),
+});
+
+export const OrganizerSchema = z.object({
+    id: z.number(),
+    email: z.string().email(),
+    role: z.string(),
+    first_name: z.string(),
+    last_name: z.string(),
+    is_active: z.boolean(),
+    date_joined: z.string().datetime({ message: "Invalid ISO 8601 datetime format" }),
+    username: z.string(),
+    profile: OrganizerProfileSchema,
+});
 
 export const EventSchema = z.object({
     id: z.number(),
-    organizer: z.number(),
+    organizer: OrganizerSchema,
+    category: z.array(z.number()),
     title: z.string(),
     description: z.string(),
     start_time: z.string().datetime({ message: "Invalid ISO 8601 datetime format" }),
@@ -16,7 +43,6 @@ export const EventSchema = z.object({
     is_public: z.boolean(),
     created_at: z.string().datetime({ message: "Invalid ISO 8601 datetime format" }),
     updated_at: z.string().datetime({ message: "Invalid ISO 8601 datetime format" }),
-    // category: z.array(z.number()),
 });
 
 export type Event = z.infer<typeof EventSchema>;

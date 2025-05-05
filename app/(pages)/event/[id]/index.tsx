@@ -95,7 +95,8 @@ const EventPage = () => {
       </ScrollView>
       <TouchableOpacity
         style={styles.button}
-        onPress={() => router.push(`/ticket/${event.id}`)}
+        onPress={() => router.push(`/ticket/1`)}
+        // onPress={() => router.push(`/ticket/${event.id}`)}
       >
         <Text style={styles.buttonText}>Buy Tickets</Text>
       </TouchableOpacity>

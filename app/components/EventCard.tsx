@@ -56,11 +56,11 @@ const EventCard = ({ event, showDots = true }: EventCardProps) => {
 							{/* Organizer Image */}
 							<Image
 								source={{
-									uri: `https://via.placeholder.com/32?text=${event.organizer}`,
+									uri: event.organizer.profile.logo_url,
 								}}
 								style={styles.profileImage}
 							/>
-							<Text style={styles.nameText}>Organizer #{event.organizer}</Text>
+							<Text style={styles.nameText}>{event.organizer.profile.name}</Text>
 						</View>
 
 						{/* Follow and Notification */}

@@ -1,9 +1,9 @@
 import { z } from "zod";
 
 export const SocialMediaLinksSchema = z.object({
-    facebook: z.string(),
-    twitter: z.string(),
-    instagram: z.string(),
+    facebook: z.string().nullable().optional(),
+    twitter: z.string().nullable().optional(),
+    instagram: z.string().nullable().optional(),
 });
 
 export const OrganizersSchema = z.object({

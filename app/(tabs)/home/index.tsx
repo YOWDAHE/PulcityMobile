@@ -28,8 +28,9 @@ export default function HomeScreen() {
                 throw new Error("Access token is required to fetch events");
             }
 
-            const fetchedEvents = await getEvents(tokens.access);
-            setEvents(fetchedEvents);
+			const fetchedEvents = await getEvents(tokens.access);
+			const filteredEvents = fetchedEvents.filter((event) => event.id != 1 && event.id != 2);
+            setEvents(filteredEvents);
             setError("");
         } catch (err) {
             setError(err instanceof Error ? err.message : "An error occurred");
@@ -85,9 +86,11 @@ export default function HomeScreen() {
                     <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} />
                 }
             >
-                {events?.map((event) => (
-                    <EventCard key={event.id} event={event} />
-                ))}
+                {events?.map((event) => 
+				{
+					return <EventCard key={event.id} event={event} />
+				}
+                )}
                 <View style={{ marginBottom: 60 }} />
             </ScrollView>
         </SafeAreaView>

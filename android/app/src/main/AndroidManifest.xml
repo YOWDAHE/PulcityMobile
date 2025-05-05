@@ -26,9 +26,17 @@
         <action android:name="android.intent.action.VIEW"/>
         <category android:name="android.intent.category.DEFAULT"/>
         <category android:name="android.intent.category.BROWSABLE"/>
-        <data android:scheme="myapp"/>
+        <data android:scheme="pulcity"/>
         <data android:scheme="com.yodahe.pulcityMobileV2"/>
         <data android:scheme="exp+pulcitymobilev2"/>
+      </intent-filter>
+      <intent-filter data-generated="true">
+        <action android:name="android.intent.action.VIEW"/>
+        <data android:scheme="https" android:host="pulcity.com"/>
+        <data android:scheme="pulcity"/>
+        <data android:scheme="exp+pulcitymobilev2"/>
+        <category android:name="android.intent.category.BROWSABLE"/>
+        <category android:name="android.intent.category.DEFAULT"/>
       </intent-filter>
     </activity>
   </application>
