@@ -41,7 +41,7 @@ const styles = StyleSheet.create({
 		height: 10,
 		borderTopWidth: 2,
 		borderLeftWidth: 2,
-		borderColor: "white",
+		// borderColor: "white",
 		transform: [{ rotate: "-45deg" }],
 	},
 	titleContainer: {
@@ -53,7 +53,7 @@ const styles = StyleSheet.create({
 		fontSize: 18,
 		fontWeight: "600",
 		fontFamily: "Poppins-SemiBold",
-		color: "white",
+		// color: "white",
 	},
 	placeholder: {
 		width: 40,

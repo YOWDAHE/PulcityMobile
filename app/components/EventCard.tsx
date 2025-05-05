@@ -7,11 +7,14 @@ import {
 	StyleSheet,
 	ImageBackground,
 	Dimensions,
+	Pressable,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Event } from "@/models/event.model";
 import { getOrganizerById } from "@/actions/organizer.actions";
 import { useAuth } from "../hooks/useAuth";
+import { TiptapRenderer } from "@/components/htmlRenderer";
+import { router } from "expo-router";
 
 interface EventCardProps {
 	event: Event;
@@ -23,20 +26,20 @@ const { width } = Dimensions.get("window");
 const EventCard = ({ event, showDots = true }: EventCardProps) => {
 	const { tokens } = useAuth();
 
-	useEffect(() => {
-		const fetchOrganizer = async () => {
-			try {
-				if (tokens?.access) {
-					console.log("Fetching organizer with access token:", tokens.access);
-					const resp = await getOrganizerById(event.organizer, tokens.access);
-					
-				}
-			} catch (error) {
-				console.error("Failed to fetch organizer:", error);
-			}
-		};
-		fetchOrganizer();
-	}, [event]);
+	// useEffect(() => {
+	// 	const fetchOrganizer = async () => {
+	// 		try {
+	// 			if (tokens?.access) {
+	// 				console.log("Fetching organizer with access token:", tokens.access);
+	// 				const resp = await getOrganizerById(event.organizer, tokens.access);
+
+	// 			}
+	// 		} catch (error) {
+	// 			console.error("Failed to fetch organizer:", error);
+	// 		}
+	// 	};
+	// 	fetchOrganizer();
+	// }, [event]);
 
 	return (
 		<View style={styles.container}>
@@ -93,7 +96,13 @@ const EventCard = ({ event, showDots = true }: EventCardProps) => {
 			{/* Event Details */}
 			<View style={styles.contentContainer}>
 				<Text style={styles.title}>{event.title}</Text>
-				<Text style={styles.description}>{event.description}</Text>
+				{/* <Text style={styles.description}>{event.description}</Text> */}
+				<View style={styles.description}>
+					<TiptapRenderer htmlContent={event.description} />
+					<Pressable onPress={() => router.push(`/event/${event.id}`)}>
+						<Text>... more</Text>
+					</Pressable>
+				</View>
 
 				<TouchableOpacity style={styles.ticketButton}>
 					<Text style={styles.ticketButtonText}>Get Your Tickets here</Text>
@@ -194,8 +203,10 @@ const styles = StyleSheet.create({
 		marginBottom: 10,
 	},
 	description: {
-		color: "#374151",
+		// color: "#374151",
 		marginBottom: 12,
+		height: 150,
+		overflow: "hidden",
 	},
 	ticketButton: {
 		flexDirection: "row",

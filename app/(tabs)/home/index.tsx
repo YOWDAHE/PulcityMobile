@@ -18,13 +18,12 @@ export default function HomeScreen() {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState("");
     const [isRefreshing, setIsRefreshing] = useState(false);
-    const { tokens, isLoading: isAuthLoading } = useAuth(); // Add isAuthLoading from useAuth
+    const { tokens, isLoading: isAuthLoading, refreshTokens } = useAuth();
 
     const fetchEvents = async () => {
         try {
             setIsLoading(true);
 
-            // Ensure tokens are available before making the API call
             if (!tokens || !tokens.access) {
                 throw new Error("Access token is required to fetch events");
             }
@@ -46,9 +45,13 @@ export default function HomeScreen() {
         }
     }, [tokens, isAuthLoading]);
 
-    const onRefresh = () => {
-        setIsRefreshing(true);
-        fetchEvents();
+	const onRefresh = async () => {
+		setIsRefreshing(true);
+		if (error != "") {	
+			await refreshTokens().then(fetchEvents);
+		} else {
+			fetchEvents();
+		}
     };
 
     if (isAuthLoading || isLoading) {

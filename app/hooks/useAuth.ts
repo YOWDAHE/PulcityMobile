@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { VerifiedUser, User, Tokens } from "@/models/auth.model";
 import { router } from "expo-router";
+import { refreshToken } from "@/actions/auth.actions";
 
 const USER_KEY = "pulcity_user";
 const TOKEN_KEY = "pulcity_token";
@@ -58,6 +59,27 @@ export const useAuth = () => {
     }
   };
 
+  // Refresh tokens
+  const refreshTokens = async () => {
+    try {
+      if (!tokens?.refresh) {
+        throw new Error("Refresh token is missing. Please log in again.");
+      }
+
+      const newTokens = await refreshToken(tokens.refresh);
+
+      await AsyncStorage.setItem(TOKEN_KEY, newTokens.access);
+      await AsyncStorage.setItem(REFRESH_TOKEN_KEY, newTokens.refresh);
+
+      setTokens(newTokens);
+
+      console.log("Tokens refreshed successfully:", newTokens);
+    } catch (error) {
+      console.error("Failed to refresh tokens:", error);
+      throw error;
+    }
+  };
+
   // Clear user and tokens from local storage
   const logout = async () => {
     try {
@@ -79,6 +101,7 @@ export const useAuth = () => {
     tokens,
     isLoading,
     saveAuthData,
+    refreshTokens,
     logout,
   };
 };

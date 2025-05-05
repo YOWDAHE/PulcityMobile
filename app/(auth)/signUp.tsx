@@ -17,6 +17,7 @@ import { useAuth } from "../hooks/useAuth";
 import { signUp, verifyEmail, resendOtp } from "../../actions/auth.actions";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { userSignUpSchema } from "@/models/auth.model";
+import * as Linking from 'expo-linking';
 
 type FormData = {
 	email: string;
@@ -319,22 +320,23 @@ export default function SignUp() {
 							)}
 						</Pressable>
 
-						{/* <Pressable
+						<Pressable
 							onPress={() => router.push("/(auth)/login")}
 							style={styles.linkButton}
 						>
 							<Text style={styles.linkText}>
 								Already have an account? <Text style={styles.linkTextBold}>Login</Text>
 							</Text>
-						</Pressable> */}
+						</Pressable>
+						
 
 						{/* Verify Email Text */}
-						<Pressable
+						{/* <Pressable
 							style={styles.verifyEmailButton}
 							onPress={() => setIsVerificationEmailMode(true)}
 						>
 							<Text style={styles.verifyEmailText}>Verify Email</Text>
-						</Pressable>
+						</Pressable> */}
 					</View>
 				</ScrollView>
 			</KeyboardAvoidingView>

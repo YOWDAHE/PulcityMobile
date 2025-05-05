@@ -1,5 +1,5 @@
 import axios from "axios";
-import { userSignUpSchema, UserSignUp, userResponseSchema, UserResponse, VerifiedUser } from "../models/auth.model";
+import { userSignUpSchema, UserSignUp, userResponseSchema, UserResponse, VerifiedUser, Tokens } from "../models/auth.model";
 
 const BASE_URL = "https://www.mindahun.pro.et/api/v1";
 // const BASE_URL = process.env.BASE_URL;
@@ -127,3 +127,32 @@ export const resendOtp = async (email: string): Promise<string> => {
         }
     }
 };
+
+
+/**
+ * Function to refresh the access token using the refresh token
+ * @param refresh - The refresh token
+ * @returns Promise resolving to void
+ * @throws Error if the API request fails or the response is invalid
+ */
+export async function refreshToken(refresh: string): Promise<Tokens> {
+    try {
+        const response = await axios.post(`${BASE_URL}/auth/token/refresh/`, {
+            refresh,
+        });
+
+        if (response.data && response.data.access && response.data.refresh) {
+            console.log('New tokens:', response.data);
+
+            return {
+                access: response.data.access,
+                refresh: response.data.refresh,
+            };
+        } else {
+            throw new Error('Invalid response format: Missing access or refresh token.');
+        }
+    } catch (error) {
+        console.error('Error refreshing token:', error);
+        throw error;
+    }
+}
