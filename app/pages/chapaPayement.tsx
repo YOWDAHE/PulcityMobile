@@ -74,7 +74,6 @@ const ChapaPayment = () => {
                             console.log("Payment Status:", status);
                             console.log("Transaction Reference:", tx_ref);
 
-                            // Close the WebView or navigate to another screen
                             setCheckoutUrl(null);
                         }
                     }}

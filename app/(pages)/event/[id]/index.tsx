@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { View, Text, Image, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
@@ -6,6 +6,7 @@ import { Event } from "@/models/event.model";
 import { useAuth } from "@/app/hooks/useAuth";
 import { getEventById } from "@/actions/event.actions";
 import { TiptapRenderer } from "@/components/htmlRenderer";
+import { useFocusEffect } from "@react-navigation/native";
 
 interface EventPageProps {
   event: Event;
@@ -13,51 +14,54 @@ interface EventPageProps {
 
 const EventPage = () => {
   const [event, setEvent] = useState<Event | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState("");
-    const { tokens } = useAuth();
-    const { id } = useLocalSearchParams();
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState("");
+  const { tokens } = useAuth();
+  const { id } = useLocalSearchParams();
 
-    useEffect(() => {
-        const fetchEvent = async () => {
-            try {
-                if (!tokens?.access) {
-                    throw new Error("Access token is required to fetch the event");
-                }
+  useFocusEffect(
+	  React.useCallback(() => {
+		console.log("Event ID:", id);
+      const fetchEvent = async () => {
+        try {
+          if (!tokens?.access) {
+            throw new Error("Access token is required to fetch the event");
+          }
 
-                if (!id) {
-                    throw new Error("Event ID is missing in the route parameters");
-                }
+          if (!id) {
+            throw new Error("Event ID is missing in the route parameters");
+          }
 
-                setIsLoading(true);
-                const fetchedEvent = await getEventById(Number(id), tokens.access);
-                setEvent(fetchedEvent);
-                setError("");
-            } catch (err) {
-                setError(err instanceof Error ? err.message : "An error occurred");
-            } finally {
-                setIsLoading(false);
-            }
-        };
+          setIsLoading(true);
+          const fetchedEvent = await getEventById(Number(id), tokens.access);
+          setEvent(fetchedEvent);
+          setError("");
+        } catch (err) {
+          setError(err instanceof Error ? err.message : "An error occurred");
+        } finally {
+          setIsLoading(false);
+        }
+      };
 
-        fetchEvent();
-    }, [id, tokens]);
+      fetchEvent();
+    }, [id, tokens])
+  );
 
-    if (isLoading || !event) {
-        return (
-            <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color="#007AFF" />
-            </View>
-        );
-    }
+  if (isLoading || !event) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#007AFF" />
+      </View>
+    );
+  }
 
-    if (error) {
-        return (
-            <View style={styles.errorContainer}>
-                <Text style={styles.errorText}>{error}</Text>
-            </View>
-        );
-    }
+  if (error) {
+    return (
+      <View style={styles.errorContainer}>
+        <Text style={styles.errorText}>{error}</Text>
+      </View>
+    );
+  }
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>

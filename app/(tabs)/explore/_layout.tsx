@@ -12,6 +12,6 @@ export default function SettingsLayout() {
 
 const styles = StyleSheet.create({
 	wrapper: {
-		// paddingBottom: 20
+		paddingBottom: 40
 	}
 })

@@ -36,64 +36,67 @@ const TicketCard: React.FC<TicketCardProps> = ({
   }, []);
 
   return (
-    <Pressable
-      style={[styles.container, isSelected && styles.containerPressed]}
-      onPress={onSelect}
-    >
-      <View style={styles.card}>
-        {/* Ticket Type */}
-        <View style={styles.ticketType}>
-          <Text style={styles.ticketTypeText}>{type}</Text>
-        </View>
+			<Pressable
+				style={[styles.container, isSelected && styles.containerPressed]}
+				onPress={onSelect}
+			>
+				<View style={styles.card}>
+					{/* Ticket Type */}
+					<View style={styles.ticketType}>
+						<Text style={styles.ticketTypeText}>{type}</Text>
+					</View>
 
-        {/* Rate Section */}
-        <View style={styles.rateSection}>
-          <View style={styles.rateLabel}>
-            <Text style={styles.rateLabelText}>Rate</Text>
-          </View>
-          <View style={styles.rateAmount}>
-            <Text style={styles.rateAmountText}>{rate} / Person</Text>
-          </View>
-        </View>
+					{/* Rate Section */}
+					<View style={styles.rateSection}>
+						<View style={styles.rateLabel}>
+							<Text style={styles.rateLabelText}>Rate</Text>
+						</View>
+						<View style={styles.rateAmount}>
+							<Text style={styles.rateAmountText}>{rate} / Person</Text>
+						</View>
+					</View>
 
-        {/* Ticket Details */}
-        <View style={styles.ticketDetails}>
-          <View style={styles.detailColumn}>
-            <View style={styles.detailLabel}>
-              <Text style={styles.detailLabelText}>Date</Text>
-            </View>
-            <View style={styles.detailValue}>
-              <Text style={styles.detailValueText}>{date}</Text>
-            </View>
-          </View>
+					{/* Ticket Details */}
+					<View style={styles.ticketDetails}>
+						<View style={styles.detailColumn}>
+							<View style={styles.detailLabel}>
+								<Text style={styles.detailLabelText}>Date</Text>
+							</View>
+							<View style={styles.detailValue}>
+								<Text style={styles.detailValueText}>{date}</Text>
+							</View>
+						</View>
 
-          <View style={styles.timeColumn}>
-            <View style={styles.detailLabel}>
-              <Text style={styles.detailLabelText}>Time</Text>
-            </View>
-            <View style={styles.detailValue}>
-              <Text style={styles.detailValueText}>{time}</Text>
-            </View>
-          </View>
-        </View>
+						<View style={styles.timeColumn}>
+							<View style={styles.detailLabel}>
+								<Text style={styles.detailLabelText}>Time</Text>
+							</View>
+							<View style={styles.detailValue}>
+								<Text style={styles.detailValueText}>{time}</Text>
+							</View>
+						</View>
+					</View>
 
-        {/* Buy for Another Button */}
-        <TouchableOpacity style={styles.buyAnother} onPress={() => onBuyForAnother(type)}>
-          <Text style={styles.buyAnotherText}>Buy for another</Text>
-        </TouchableOpacity>
+					{/* Buy for Another Button */}
+					<TouchableOpacity
+						style={styles.buyAnother}
+						onPress={() => onBuyForAnother(type)}
+					>
+						<Text style={styles.buyAnotherText}>Buy for another</Text>
+					</TouchableOpacity>
 
-        {/* Avatar and "You" Text */}
-        {isSelected && (
-          <View style={styles.avatarContainer}>
-            {/* <View style={styles.avatar}>
+					{/* Avatar and "You" Text */}
+					{isSelected && (
+						<View style={styles.avatarContainer}>
+							{/* <View style={styles.avatar}>
               <Text style={styles.avatarInitial}>Y</Text>
             </View> */}
-            <Text style={styles.avatarText}>You</Text>
-          </View>
-        )}
-      </View>
-    </Pressable>
-  );
+							<Text style={styles.avatarText}>You</Text>
+						</View>
+					)}
+				</View>
+			</Pressable>
+		);
 };
 
 const styles = StyleSheet.create({

@@ -1,15 +1,15 @@
 import React, { useEffect, useState } from "react";
 import {
-  View,
-  Text,
-  ScrollView,
-  StyleSheet,
-  Button,
-  TextInput,
-  TouchableWithoutFeedback,
-  Modal,
+	View,
+	Text,
+	ScrollView,
+	StyleSheet,
+	Button,
+	TextInput,
+	TouchableWithoutFeedback,
+	Modal,
+	Alert,
 } from "react-native";
-0;
 import ButtonComponent from "@/components/ButtonComponent";
 import HeaderComponent from "@/components/HeaderComponent";
 import TicketCard from "@/components/TicketCard";
@@ -17,108 +17,107 @@ import { router, useLocalSearchParams } from "expo-router";
 import { useAuth } from "@/app/hooks/useAuth";
 import { Ticket } from "@/models/ticket.model";
 import { getTicketById } from "@/actions/ticket.actions";
+import { paymentInit } from "@/actions/payment.actions";
+import * as WebBrowser from "expo-web-browser";
 
 interface BuyTicketsScreenProps {
-  onBack?: () => void;
-  onContinue?: () => void;
-  // onBuyForAnother?: () => void;
+	onBack?: () => void;
+	onContinue?: () => void;
 }
 
 const ContactModal = ({
-  visible,
-  onClose,
-  onSave,
+	visible,
+	onClose,
+	onSave,
 }: {
-  visible: boolean;
-  onClose: () => void;
-  onSave: (contact: { name: string; email: string; phone: string }) => void;
+	visible: boolean;
+	onClose: () => void;
+	onSave: (contact: { name: string; email: string; phone: string }) => void;
 }) => {
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
-  const [searchQuery, setSearchQuery] = useState("");
+	const [name, setName] = useState("");
+	const [email, setEmail] = useState("");
+	const [phone, setPhone] = useState("");
+	const [searchQuery, setSearchQuery] = useState("");
 
-  const handleSave = () => {
-    onSave({ name, email, phone });
-    onClose();
-  };
+	const handleSave = () => {
+		onSave({ name, email, phone });
+		onClose();
+	};
 
-  return (
-    <Modal
-      transparent={true}
-      visible={visible}
-      animationType="slide"
-      onRequestClose={onClose}
-    >
-      <TouchableWithoutFeedback onPress={onClose}>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContainer}>
-            <View style={styles.modalContent}>
-              <View style={styles.handleBar} />
+	return (
+		<Modal
+			transparent={true}
+			visible={visible}
+			animationType="slide"
+			onRequestClose={onClose}
+		>
+			<TouchableWithoutFeedback onPress={onClose}>
+				<View style={styles.modalOverlay}>
+					<View style={styles.modalContainer}>
+						<View style={styles.modalContent}>
+							<View style={styles.handleBar} />
 
-              <TextInput
-                style={styles.searchBar}
-                placeholder="Search a user..."
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-              />
+							<TextInput
+								style={styles.searchBar}
+								placeholder="Search a user..."
+								value={searchQuery}
+								onChangeText={setSearchQuery}
+							/>
 
-              <Text style={styles.modalTitle}>or add by contact</Text>
+							<Text style={styles.modalTitle}>or add by contact</Text>
 
-              <View style={styles.modalScrollView}>
-                <View>
-                  <View style={styles.inputContainer}>
-                    <Text style={styles.label}>Name</Text>
-                    <TextInput
-                      style={styles.input}
-                      placeholder="Eg. John Doe"
-                      value={name}
-                      onChangeText={setName}
-                    />
-                  </View>
+							<View style={styles.modalScrollView}>
+								<View>
+									<View style={styles.inputContainer}>
+										<Text style={styles.label}>Name</Text>
+										<TextInput
+											style={styles.input}
+											placeholder="Eg. John Doe"
+											value={name}
+											onChangeText={setName}
+										/>
+									</View>
 
-                  <View style={styles.inputContainer}>
-                    <Text style={styles.label}>Email</Text>
-                    <TextInput
-                      style={styles.input}
-                      placeholder="Eg. johndoe@gmail.com"
-                      keyboardType="email-address"
-                      value={email}
-                      onChangeText={setEmail}
-                    />
-                  </View>
+									<View style={styles.inputContainer}>
+										<Text style={styles.label}>Email</Text>
+										<TextInput
+											style={styles.input}
+											placeholder="Eg. johndoe@gmail.com"
+											keyboardType="email-address"
+											value={email}
+											onChangeText={setEmail}
+										/>
+									</View>
 
-                  <View style={styles.inputContainer}>
-                    <Text style={styles.label}>Phone Number</Text>
-                    <TextInput
-                      style={styles.input}
-                      placeholder="Eg. +251 ..."
-                      keyboardType="phone-pad"
-                      value={phone}
-                      onChangeText={setPhone}
-                    />
-                  </View>
-                </View>
-                <Button title="Done" onPress={handleSave} />
-              </View>
-            </View>
-          </View>
-        </View>
-      </TouchableWithoutFeedback>
-    </Modal>
-  );
+									<View style={styles.inputContainer}>
+										<Text style={styles.label}>Phone Number</Text>
+										<TextInput
+											style={styles.input}
+											placeholder="Eg. +251 ..."
+											keyboardType="phone-pad"
+											value={phone}
+											onChangeText={setPhone}
+										/>
+									</View>
+								</View>
+								<Button title="Done" onPress={handleSave} />
+							</View>
+						</View>
+					</View>
+				</View>
+			</TouchableWithoutFeedback>
+		</Modal>
+	);
 };
 
 const BuyTicketsScreen: React.FC<BuyTicketsScreenProps> = ({
-  onBack = () => router.back,
-  onContinue = () => console.log("Continue pressed"),
-  // onBuyForAnother = () => console.log("Buy for another pressed"),
+	onBack = () => router.back,
 }) => {
-  const [ticket, setTicket] = useState<Ticket[]>([]);
+	const [ticket, setTicket] = useState<Ticket[]>([]);
 	const [isLoading, setIsLoading] = useState(true);
 	const [error, setError] = useState("");
-  const { tokens } = useAuth();
-      const { id } = useLocalSearchParams();
+	const { tokens } = useAuth();
+	const { id } = useLocalSearchParams();
 
 	useEffect(() => {
 		const fetchTicket = async () => {
@@ -137,96 +136,101 @@ const BuyTicketsScreen: React.FC<BuyTicketsScreenProps> = ({
 		};
 
 		fetchTicket();
-  }, [tokens]);
-  
-  const [selectedTicket, setSelectedTicket] = useState<number | null>(null);
-  const [showContactModal, setShowContactModal] = useState(false);
-  const [contacts, setContacts] = useState<
-    Record<string, { name: string; email: string; phone: string }>
-  >({});
+	}, [tokens]);
 
-  const handleBuyForAnother = (ticketType: string) => {
-    console.log("Buy for another pressed......", ticketType);
-    setShowContactModal(true);
-  };
+	const [selectedTicket, setSelectedTicket] = useState<number | null>(null);
+	const [showContactModal, setShowContactModal] = useState(false);
+	const [contacts, setContacts] = useState<
+		Record<string, { name: string; email: string; phone: string }>
+	>({});
 
-  const handleSaveContact = (contact: {
-    name: string;
-    email: string;
-    phone: string;
-  }) => {
-    if (selectedTicket) {
-      setContacts((prev) => ({
-        ...prev,
-        [selectedTicket]: contact,
-      }));
-    }
-  };
+	const handleBuyForAnother = (ticketType: string) => {
+		console.log("Buy for another pressed......", ticketType);
+		setShowContactModal(true);
+	};
 
-  // const ticketData = [
-  //   {
-  //     type: "Normal",
-  //     rate: "200 ETB/person",
-  //     date: "Dec 16, 2024",
-  //     time: "11:00 AM",
-  //   },
-  //   {
-  //     type: "VIP",
-  //     rate: "400 ETB/person",
-  //     date: "Dec 16, 2024",
-  //     time: "11:00 AM",
-  //   },
-  //   {
-  //     type: "VVIP",
-  //     rate: "600 ETB/person",
-  //     date: "Dec 16, 2024",
-  //     time: "11:00 AM",
-  //   },
-  // ];
+	const handleSaveContact = (contact: {
+		name: string;
+		email: string;
+		phone: string;
+	}) => {
+		if (selectedTicket) {
+			setContacts((prev) => ({
+				...prev,
+				[selectedTicket]: contact,
+			}));
+		}
+	};
 
-  return (
-    <View style={styles.container}>
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-      >
-        <HeaderComponent title="Buy Tickets" onBack={onBack} />
+	return (
+		<View style={styles.container}>
+			<ScrollView
+				style={styles.scrollView}
+				contentContainerStyle={styles.scrollContent}
+			>
+				<HeaderComponent title="Buy Tickets" onBack={() => router.back()} />
 
-        <View style={styles.pageTitle}>
-          <Text style={styles.pageTitleText}>Tamino Tour 2024</Text>
-        </View>
+				<View style={styles.pageTitle}>
+					<Text style={styles.pageTitleText}>Tamino Tour 2024</Text>
+				</View>
 
-        {ticket.map((ticket, index) => (
-          <TicketCard
-            key={index}
-            type={ticket.name}
-            rate={ticket.price}
-            date={new Date(ticket.valid_until).toLocaleDateString()}
-            time={new Date(ticket.valid_until).toLocaleTimeString([], {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
-            onBuyForAnother={handleBuyForAnother}
-            isSelected={selectedTicket === Number(ticket.id)}
-            onSelect={() => setSelectedTicket(ticket.id)}
-          />
-        ))}
+				{ticket.map((ticket, index) => (
+					<TicketCard
+						key={index}
+						type={ticket.name}
+						rate={ticket.price}
+						date={new Date(ticket.valid_until).toLocaleDateString()}
+						time={new Date(ticket.valid_until).toLocaleTimeString([], {
+							hour: "2-digit",
+							minute: "2-digit",
+						})}
+						onBuyForAnother={handleBuyForAnother}
+						isSelected={selectedTicket === Number(ticket.id)}
+						onSelect={() => setSelectedTicket(ticket.id)}
+					/>
+				))}
 
-        <View style={styles.buttonContainer}>
-          <ButtonComponent
-            text="Continue"
-            onPress={onContinue}
-            customStyles={styles.continueButton}
-          />
-        </View>
-      </ScrollView>
-      <ContactModal
-        visible={showContactModal}
-        onClose={() => setShowContactModal(false)}
-        onSave={handleSaveContact}
-      />
-    </View>
-  );
+				<View style={styles.buttonContainer}>
+					<ButtonComponent
+						text="Continue"
+						onPress={async () => {
+							if (!selectedTicket) {
+								Alert.alert(
+									"No Ticket Selected",
+									"Please select a ticket before continuing."
+								);
+								return;
+							}
+
+							try {
+								const paymentResponse = await paymentInit(
+									selectedTicket,
+									tokens?.access || ""
+								);
+								const checkoutUrl = paymentResponse.detail.data.checkout_url;
+                await WebBrowser.openBrowserAsync(checkoutUrl).then((result) => {
+                  // result.type.
+                  //   console.log("Browser closed", result);
+                });
+							} catch (error) {
+								Alert.alert(
+									"Payment Error",
+									"Failed to initialize payment. Please try again."
+								);
+								console.error("Payment initialization error:", error);
+							}
+						}}
+						customStyles={styles.continueButton}
+					/>
+				</View>
+			</ScrollView>
+			<ContactModal
+				visible={showContactModal}
+				onClose={() => setShowContactModal(false)}
+				onSave={handleSaveContact}
+			/>
+		</View>
+	);
 };
 
 const styles = StyleSheet.create({
@@ -246,7 +250,6 @@ const styles = StyleSheet.create({
 		borderTopRightRadius: 20,
 		maxHeight: "80%",
 		height: "100%",
-		// paddingBottom: 200,
 	},
 	modalScrollView: {
 		flex: 1,
@@ -286,7 +289,6 @@ const styles = StyleSheet.create({
 	},
 	container: {
 		flex: 1,
-		// backgroundColor: "#fefae0",
 	},
 	scrollView: {
 		flex: 1,
@@ -304,7 +306,6 @@ const styles = StyleSheet.create({
 	pageTitleText: {
 		fontSize: 20,
 		fontWeight: "600",
-		// color: "white",
 		fontFamily: "Poppins-SemiBold",
 	},
 	buttonContainer: {
