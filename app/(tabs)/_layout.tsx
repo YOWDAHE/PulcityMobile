@@ -1,14 +1,24 @@
 import { Tabs, Redirect, usePathname } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { useAuth } from "../hooks/useAuth";
-import { ActivityIndicator, View, StyleSheet } from "react-native";
+import {  View, StyleSheet } from "react-native";
 import { Header } from "../components/Header";
-import { Colors } from "@/constants/Colors";
+import * as Font from "expo-font";
+import {
+	Poppins_400Regular,
+	Poppins_500Medium,
+	Poppins_600SemiBold,
+	useFonts,
+} from "@expo-google-fonts/poppins";
 
 export default function TabLayout() {
 	// const { isAuthenticated, isLoading } = useAuth();
 	const pathname = usePathname();
 	const isChatDetailScreen = pathname.startsWith("/chat");
+	const [fontsLoaded] = useFonts({
+		Poppins_400Regular,	
+		Poppins_500Medium,
+		Poppins_600SemiBold,
+	});
 
 	// if (isLoading) {
 	// 	return (
@@ -71,7 +81,7 @@ export default function TabLayout() {
 					}}
 				/>
 				<Tabs.Screen
-					name="profile/index"
+					name="profile"
 					options={{
 						headerShown: false,
 						title: "Profile",

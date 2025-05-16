@@ -5,6 +5,8 @@ import {
 	StyleSheet,
 	ActivityIndicator,
 	ScrollView,
+	Touchable,
+	TouchableOpacity,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import QRCode from "react-native-qrcode-svg";
@@ -32,7 +34,7 @@ const CheckoutPage = () => {
 			try {
 				if (!tokens?.access) {
 					console.log("Access token is missing in the ticket page");
-					return; // Exit early if no access token
+					return;
 				}
 
 				if (!id) {
@@ -43,17 +45,18 @@ const CheckoutPage = () => {
 					Number(id),
 					tokens.access
 				);
+				
+				if (fetchedTickets == undefined) return;
 				if (fetchedTickets.length > 0) {
 					const event: Event = await getEventById(
 						Number(fetchedTickets[0].event),
-						tokens.access
 					);
 					setEvent(event);
 				}
-				console.log("Fetched tickets:", fetchedTickets);
 				setTickets(fetchedTickets);
 				setError("");
 			} catch (err) {
+				console.log("Error fetching tickets:", err);
 				setError(err instanceof Error ? err.message : "An error occurred");
 			} finally {
 				setIsLoading(false);
@@ -143,7 +146,7 @@ const CheckoutPage = () => {
 									width: "100%",
 									marginVertical: 16,
 									position: "absolute",
-									top: -78,
+									top: -58,
 								}}
 							/>
 							<View
@@ -155,7 +158,7 @@ const CheckoutPage = () => {
 									alignSelf: "center",
 									marginVertical: 16,
 									position: "absolute",
-									top: -140,
+									top: -120,
 									left: -100,
 								}}
 							/>
@@ -168,7 +171,7 @@ const CheckoutPage = () => {
 									alignSelf: "center",
 									marginVertical: 16,
 									position: "absolute",
-									top: -140,
+									top: -120,
 									right: -100,
 								}}
 							/>
@@ -176,6 +179,18 @@ const CheckoutPage = () => {
 						</View>
 					</View>
 				))}
+
+				<TouchableOpacity
+					style={{
+						backgroundColor: "white",
+						padding: 16,
+						borderRadius: 8,
+						alignItems: "center",
+						marginBottom: 60,
+					}}
+					onPress={() => router.push(`/(tabs)/home`)}
+				>
+					<Text>Done</Text></TouchableOpacity>
 			</ScrollView>
 		</View>
 	);
@@ -223,12 +238,13 @@ const styles = StyleSheet.create({
 	},
 	ticketContent: {
 		marginBottom: 16,
+		marginTop: 5,
+		paddingHorizontal: 16,
 	},
 	title: {
 		fontSize: 20,
 		fontWeight: "bold",
 		marginBottom: 16,
-		textAlign: "center",
 	},
 	row: {
 		flexDirection: "row",

@@ -3,7 +3,7 @@ import ReplyMessageBar from "@/components/ReplyMessageBar";
 import { Colors } from "@/constants/Colors";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useState, useCallback, useEffect, useRef } from "react";
-import { ImageBackground, StyleSheet, View, Text, Alert } from "react-native";
+import { ImageBackground, StyleSheet, View, Text, Image } from "react-native";
 import { Swipeable } from "react-native-gesture-handler";
 import {
 	GiftedChat,
@@ -20,15 +20,16 @@ import {
 	PresenceEvent,
 	SignalEvent,
 	MessageEvent as PubNubMessageEvent,
-} from "pubnub";// Import ImagePicker
+} from "pubnub"; // Import ImagePicker
+import { User } from "@/models/auth.model";
+import { useAuth } from "@/app/hooks/useAuth";
+import { useLocalSearchParams } from "expo-router";
+import { Event } from "@/models/event.model";
+import { getEventById } from "@/actions/event.actions";
+import { useNavigation } from "@react-navigation/native";
 
 interface MessageEvent extends PubNubMessageEvent {
 	channel: string;
-}
-
-interface User {
-	_id: string;
-	name: string;
 }
 
 interface TypingSignalContent {
@@ -44,6 +45,7 @@ interface PresenceEventExtended extends PresenceEvent {
 }
 
 const Page = () => {
+	const { id } = useLocalSearchParams();
 	const [messages, setMessages] = useState<IMessage[]>([]);
 	const [text, setText] = useState("");
 	const insets = useSafeAreaInsets();
@@ -52,26 +54,30 @@ const Page = () => {
 	const [replyMessage, setReplyMessage] = useState<IMessage | null>(null);
 	const swipeableRowRef = useRef<Swipeable | null>(null);
 
-	const [currentUser, setCurrentUser] = useState<User | null>(null);
+	// const [authUser, setCurrentUser] = useState<User | null>(null);
 	const [typers, setTypers] = useState<string[]>([]);
 	const [onlineUsers, setOnlineUsers] = useState<User[]>([]);
 	const [initialHistoryLoaded, setInitialHistoryLoaded] = useState(false);
 	const [userMap, setUserMap] = useState<Record<string, User>>({});
+	const { user: authUser } = useAuth();
+	const [event, setEvent] = useState<Event>();
 
-	const channel = "group-chat";
+	const channel = `${id}`;
 
 	useEffect(() => {
-		const uuid = pubnub.getUUID();
-		const newUser = { _id: uuid, name: `Joda` };
+		if (!authUser) return;
+
+		const uuid = String(authUser.id);
 		console.log(`User UUID: ${uuid}`);
-		setCurrentUser(newUser);
-		setUserMap((prev) => ({ ...prev, [uuid]: newUser }));
-		pubnub.setUUID(currentUser?._id || pubnub.getUUID());
+		// setCurrentUser(authUser);
+		setUserMap((prev) => ({ ...prev, [uuid]: authUser }));
+
+		pubnub.setUUID(uuid);
 		pubnub.objects.setUUIDMetadata({
-			uuid: currentUser?._id || "",
+			uuid: uuid,
 			data: {
 				custom: {
-					name: currentUser?.name ?? "name",
+					name: authUser.username,
 				},
 			},
 		});
@@ -96,7 +102,7 @@ const Page = () => {
 				if (response?.channels[channel] && !initialHistoryLoaded) {
 					const historyMessages: IMessage[] = response.channels[channel].map(
 						(message) => {
-							console.log("History message:", message.uuid, currentUser?._id);
+							console.log("History message:", message.uuid, authUser?.id);
 							return {
 								_id: message.timetoken.toString(),
 								text: message.message.text,
@@ -108,6 +114,7 @@ const Page = () => {
 							};
 						}
 					);
+
 					// historyMessages.push({
 					// 	_id: "0",
 					// 	text: "Hello there",
@@ -128,13 +135,14 @@ const Page = () => {
 			pubnub.unsubscribeAll();
 			pubnub.removeListener(listener);
 		};
-	}, []);
+	}, [authUser]);
 
 	const handleMessage = useCallback(
 		(messageEvent: MessageEvent) => {
+			const currentUserID = String(authUser?.id);
 			if (messageEvent.channel === channel) {
 				// Ignore messages sent by the current user
-				if (messageEvent.publisher === currentUser?._id) {
+				if (messageEvent.publisher == currentUserID) {
 					return;
 				}
 
@@ -149,7 +157,7 @@ const Page = () => {
 							createdAt: new Date(Number(messageEvent.timetoken) / 10000),
 							user: {
 								_id: messageEvent.publisher,
-								name: userMap[messageEvent.publisher]?.name,
+								name: userMap[messageEvent.publisher]?.username,
 							},
 						};
 						return GiftedChat.append(prev, [newMessage]);
@@ -158,7 +166,7 @@ const Page = () => {
 				});
 			}
 		},
-		[channel, currentUser, userMap]
+		[channel, authUser, userMap]
 	);
 
 	const handlePresence = useCallback(
@@ -168,7 +176,7 @@ const Page = () => {
 				name: `Yodahe`,
 			};
 
-			setUserMap((prev) => ({ ...prev, [user._id]: user }));
+			setUserMap((prev) => ({ ...prev, [user.id]: user }));
 
 			switch (presenceEvent.action) {
 				case "join":
@@ -176,7 +184,9 @@ const Page = () => {
 					break;
 				case "leave":
 				case "timeout":
-					setOnlineUsers((prev) => prev.filter((u) => u._id !== presenceEvent.uuid));
+					setOnlineUsers((prev) =>
+						prev.filter((u) => String(u.id) !== presenceEvent.uuid)
+					);
 					break;
 			}
 		},
@@ -201,11 +211,11 @@ const Page = () => {
 
 	const sendMessage = useCallback(
 		(newMessages: IMessage[] = []) => {
-			if (!currentUser) return;
+			if (!authUser) return;
 
 			// Publish the message to PubNub
 			newMessages.forEach((message) => {
-				console.log("Sending message:", currentUser.name);
+				console.log("Sending message:", authUser.username);
 				pubnub.publish(
 					{
 						channel,
@@ -214,8 +224,8 @@ const Page = () => {
 							createdAt: message.createdAt,
 							image: message.image,
 							user: {
-								_id: currentUser._id,
-								name: currentUser.name,
+								_id: authUser.id,
+								name: authUser.username,
 							},
 						},
 					},
@@ -232,7 +242,7 @@ const Page = () => {
 			// Append the message locally
 			setMessages((prevMessages) => GiftedChat.append(prevMessages, newMessages));
 		},
-		[currentUser, pubnub, channel]
+		[authUser, pubnub, channel]
 	);
 
 	const handleTyping = useCallback((text: string) => {
@@ -247,11 +257,10 @@ const Page = () => {
 	}, []);
 
 	const renderInputToolbar = (props: any) => {
-
 		return (
 			<InputToolbar
 				{...props}
-				containerStyle={{ backgroundColor: Colors.background }}
+				containerStyle={{ backgroundColor: "White" }}
 				renderActions={() => (
 					<View
 						style={{
@@ -265,7 +274,7 @@ const Page = () => {
 							name="add"
 							color={Colors.primary}
 							size={28}
-							onPress={()=>{}}
+							onPress={() => {}}
 						/>
 					</View>
 				)}
@@ -293,7 +302,7 @@ const Page = () => {
 		}
 	}, [replyMessage]);
 
-	if (!currentUser) return null;
+	if (!authUser) return null;
 
 	return (
 		<ImageBackground
@@ -308,7 +317,7 @@ const Page = () => {
 				messages={messages}
 				onSend={sendMessage}
 				onInputTextChanged={handleTyping}
-				user={{ _id: currentUser._id, name: currentUser.name }}
+				user={{ _id: String(authUser.id), name: authUser.username }}
 				renderSystemMessage={(props) => (
 					<SystemMessage {...props} textStyle={{ color: Colors.gray }} />
 				)}
@@ -317,7 +326,7 @@ const Page = () => {
 				maxComposerHeight={100}
 				textInputProps={styles.composer}
 				renderBubble={(props) => {
-					const isCurrentUser = props.currentMessage.user._id === currentUser?._id;
+					const isCurrentUser = props.currentMessage.user._id == authUser?.id;
 					return (
 						<View>
 							{!isCurrentUser && (
@@ -338,7 +347,7 @@ const Page = () => {
 								{...props}
 								textStyle={{
 									right: {
-										color: "#000",
+										color: "white",
 									},
 								}}
 								wrapperStyle={{
@@ -346,7 +355,7 @@ const Page = () => {
 										backgroundColor: "#fff",
 									},
 									right: {
-										backgroundColor: Colors.lightGreen,
+										backgroundColor: Colors.gray,
 									},
 								}}
 							/>
@@ -362,6 +371,7 @@ const Page = () => {
 							justifyContent: "center",
 							gap: 14,
 							paddingHorizontal: 14,
+							backgroundColor: 'white'
 						}}
 					>
 						{text === "" && (
@@ -404,12 +414,12 @@ const Page = () => {
 
 const styles = StyleSheet.create({
 	composer: {
-		backgroundColor: "#fff",
-		borderRadius: 18,
-		borderWidth: 1,
-		borderColor: Colors.lightGray,
+		backgroundColor: "white",
+		// borderRadius: 18,
+		// borderWidth: 1,
+		// borderColor: Colors.lightGray,
 		paddingHorizontal: 10,
-		paddingTop: 8,
+		// paddingTop: 8,
 		fontSize: 16,
 		marginVertical: 4,
 	},

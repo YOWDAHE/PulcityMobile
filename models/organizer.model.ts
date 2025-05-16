@@ -1,99 +1,49 @@
 import { z } from "zod";
+import { Event } from "./event.model";
 
+// Social Media Links Schema
 export const SocialMediaLinksSchema = z.object({
-    facebook: z.string().nullable().optional(),
-    twitter: z.string().nullable().optional(),
-    instagram: z.string().nullable().optional(),
+    twitter: z.union([z.string().url(), z.literal(""), z.null()]).optional(),
+    facebook: z.union([z.string().url(), z.literal(""), z.null()]).optional(),
+    instagram: z.union([z.string().url(), z.literal(""), z.null()]).optional(),
 });
 
-export const OrganizersSchema = z.object({
-    email: z.string().email(),
-    username: z.string().optional(),
-    password: z.string(),
+// Organizer Profile Schema
+export const OrganizerProfileSchema = z.object({
+    id: z.number(),
+    is_following: z.boolean(),
     name: z.string(),
-    description: z.string().optional(),
-    contact_phone: z.string().optional(),
-    website_url: z.string().url().optional(),
-    social_media_links: SocialMediaLinksSchema.optional(),
-    logo_url: z.string().url().optional(),
+    description: z.string(),
+    logo_url: z.string().url({ message: "Invalid URL format" }),
+    contact_phone: z.string(),
+    website_url: z.string().url({ message: "Invalid URL format" }),
+    social_media_links: SocialMediaLinksSchema,
+    created_at: z.string().datetime({ message: "Invalid ISO 8601 datetime format" }),
+    updated_at: z.string().datetime({ message: "Invalid ISO 8601 datetime format" }),
+    user: z.number(),
 });
 
-export type OrganizerResponseType = OrganierSuccessResponseType | { "email"?: String[], "password"?: String[], "name"?: String[] };
+// Organizer Schema
+export const OrganizerSchema = z.object({
+    id: z.number(),
+    email: z.string().email(),
+    role: z.string(),
+    first_name: z.string(),
+    last_name: z.string(),
+    is_active: z.boolean(),
+    date_joined: z.string().datetime({ message: "Invalid ISO 8601 datetime format" }),
+    username: z.string(),
+    profile: OrganizerProfileSchema,
+});
 
-export interface OrganierSuccessResponseType {
-    message: string;
-    user: Organization;
+export interface OrganizerPageInterface {
+    eventCount: number;
+    events: Event[];
+    followerCount: number;
+    organization: Organizer;
 }
 
-export interface Organization {
-    id: number;
-    email: string;
-    role: string;
-    username: string;
-    profile: Profile;
-}
-
-
-export interface Profile {
-    id: number;
-    name: string;
-    description: string;
-    logo_url: string;
-    contact_phone: string;
-    website_url: string;
-    social_media_links: SocialMediaLinks;
-    created_at: Date;
-    updated_at: Date;
-    user: number;
-}
-
-export interface SocialMediaLinks {
-    facebook: string;
-    twitter: string;
-    instagram: string;
-}
-
-
-export interface VerifiedOrganizer {
-    message: string;
-    tokens: Tokens;
-    user: Organizer;
-}
-
-export interface Tokens {
-    refresh: string;
-    access: string;
-}
-
-export interface Organizer {
-    id: number;
-    email: string;
-    role: string;
-    username: string;
-    profile: Profile;
-}
-
-export interface Profile {
-    id: number;
-    name: string;
-    description: string;
-    logo_url: string;
-    contact_phone: string;
-    website_url: string;
-    social_media_links: SocialMediaLinks;
-    created_at: Date;
-    updated_at: Date;
-    user: number;
-}
-
-export interface SocialMediaLinks {
-    twitter: string;
-    facebook: string;
-    instagram: string;
-}
-
-
-
-
-export type SocialMediaLinksType = z.infer<typeof SocialMediaLinksSchema>;
-export type OrganizerType = z.infer<typeof OrganizersSchema>;
+// Export inferred types
+export type SocialMediaLinks = z.infer<typeof SocialMediaLinksSchema>;
+export type OrganizerProfile = z.infer<typeof OrganizerProfileSchema>;
+export type Organizer = z.infer<typeof OrganizerSchema>;

@@ -52,14 +52,14 @@ export const getBoughtTicketsByEventId = async (eventId: number, accessToken: st
             throw new Error("Access token is missing. Please log in again.");
         }
 
-        const response = await axios.get(`${BASE_URL}/events/${eventId}/tickets/`, {
+        const response = await axios.get(`${BASE_URL}/events/${eventId}/user/tickets/`, {
             headers: {
                 Authorization: `Bearer ${accessToken}`,
             },
         });
 
         console.log("Fetched tickets successfully:", response.data);
-        return response.data.tickets;
+        return response.data;
     } catch (error) {
         if (axios.isAxiosError(error) && error.response) {
             const apiErrors = error.response.data;
@@ -82,13 +82,13 @@ export const getBoughtTicketsByEventId = async (eventId: number, accessToken: st
  * @returns Promise resolving to an array of tickets
  * @throws Error if the API request fails or the response is invalid
  */
-export const getUserTicketsByEventId = async (eventId: number, accessToken: string): Promise<Ticket[]> => {
+export const getTicketsByEventId = async (eventId: number, accessToken: string): Promise<Ticket[]> => {
     try {
         if (!accessToken) {
             throw new Error("Access token is missing. Please log in again.");
         }
 
-        const response = await axios.get(`${BASE_URL}/events/${eventId}/user/tickets/`, {
+        const response = await axios.get(`${BASE_URL}/events/${eventId}/tickets/`, {
             headers: {
                 Authorization: `Bearer ${accessToken}`,
             },

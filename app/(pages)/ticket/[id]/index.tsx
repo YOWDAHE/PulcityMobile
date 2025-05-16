@@ -16,7 +16,7 @@ import TicketCard from "@/components/TicketCard";
 import { router, useLocalSearchParams } from "expo-router";
 import { useAuth } from "@/app/hooks/useAuth";
 import { Ticket } from "@/models/ticket.model";
-import { getTicketById } from "@/actions/ticket.actions";
+import { getTicketById, getTicketsByEventId } from "@/actions/ticket.actions";
 import { paymentInit } from "@/actions/payment.actions";
 import * as WebBrowser from "expo-web-browser";
 
@@ -126,8 +126,8 @@ const BuyTicketsScreen: React.FC<BuyTicketsScreenProps> = ({
 					console.log("Access token is missing here");
 					throw new Error("Access token is missing");
 				}
-				const fetchedTicket = await getTicketById(Number(id), tokens.access);
-				setTicket((prev) => [...prev, fetchedTicket]);
+				const fetchedTicket = await getTicketsByEventId(Number(id), tokens.access);
+				setTicket(fetchedTicket);
 			} catch (err) {
 				setError(err instanceof Error ? err.message : "An error occurred");
 			} finally {
@@ -208,10 +208,7 @@ const BuyTicketsScreen: React.FC<BuyTicketsScreenProps> = ({
 									tokens?.access || ""
 								);
 								const checkoutUrl = paymentResponse.detail.data.checkout_url;
-                await WebBrowser.openBrowserAsync(checkoutUrl).then((result) => {
-                  // result.type.
-                  //   console.log("Browser closed", result);
-                });
+								await WebBrowser.openBrowserAsync(checkoutUrl);
 							} catch (error) {
 								Alert.alert(
 									"Payment Error",

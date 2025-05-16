@@ -505,6 +505,29 @@ export const styles = StyleSheet.create({
   //   fontFamily: "Poppins_400Regular",
   //   color: "#9CA3AF",
   // },
+  followingContainer: {
+    padding: 16,
+  },
+  organizerCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  organizerImage: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginRight: 12,
+  },
+  organizerName: {
+    fontSize: 16,
+    fontWeight: "500",
+  },
+  errorText: {
+    color: "red",
+    textAlign: "center",
+    marginVertical: 16,
+  },
 });
 
 export default {};

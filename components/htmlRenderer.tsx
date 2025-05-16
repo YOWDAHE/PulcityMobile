@@ -22,7 +22,7 @@ export const TiptapRenderer = ({ htmlContent }: { htmlContent: any }) => {
 				source={{ html: htmlContent }}
 				customHTMLElementModels={customHTMLElementModels}
 				tagsStyles={{
-					p: { fontSize: 16, lineHeight: 24 },
+					p: { fontSize: 16, lineHeight: 20, fontWeight: 'light' },
 					strong: { fontWeight: "bold" },
 					// Add other styles as needed
 				}}

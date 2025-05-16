@@ -18,17 +18,11 @@ export default function HomeScreen() {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState("");
     const [isRefreshing, setIsRefreshing] = useState(false);
-    const { tokens, isLoading: isAuthLoading, refreshTokens } = useAuth();
 
     const fetchEvents = async () => {
         try {
             setIsLoading(true);
-
-            if (!tokens || !tokens.access) {
-                throw new Error("Access token is required to fetch events");
-            }
-
-			const fetchedEvents = await getEvents(tokens.access);
+			const fetchedEvents = await getEvents();
 			const filteredEvents = fetchedEvents.filter((event) => event.id != 1 && event.id != 2);
             setEvents(filteredEvents);
             setError("");
@@ -41,21 +35,14 @@ export default function HomeScreen() {
     };
 
     useEffect(() => {
-        if (!isAuthLoading && tokens && tokens.access) {
             fetchEvents();
-        }
-    }, [tokens, isAuthLoading]);
+    }, []);
 
 	const onRefresh = async () => {
-		setIsRefreshing(true);
-		if (error != "") {	
-			await refreshTokens().then(fetchEvents);
-		} else {
-			fetchEvents();
-		}
+		fetchEvents();
     };
 
-    if (isAuthLoading || isLoading) {
+    if ( isLoading) {
         return (
             <View style={styles.loadingContainer}>
                 <ActivityIndicator size="large" color="#007AFF" />
@@ -79,9 +66,9 @@ export default function HomeScreen() {
     }
 
     return (
-        <SafeAreaView style={styles.container}>
+        <View style={styles.container}>
             <ScrollView
-                style={styles.scrollView}
+                // style={styles.scrollView}
                 refreshControl={
                     <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} />
                 }
@@ -90,10 +77,10 @@ export default function HomeScreen() {
 				{
 					return <EventCard key={event.id} event={event} />
 				}
-                )}
+                ).reverse()}
                 <View style={{ marginBottom: 60 }} />
             </ScrollView>
-        </SafeAreaView>
+        </View>
     );
 }
 

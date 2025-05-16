@@ -2,7 +2,7 @@ import { FontAwesome, Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { ImageSourcePropType } from "react-native";
 
 export type TabName = "following" | "events" | "posts" | "followers";
-export type ContentTabName = "reviews" | "saved" | "history";
+export type ContentTabName = "reviews" | "saved" | "history" | "following";
 export type HistoryTabName = "events" | "tickets";
 
 export interface ProfileData {

@@ -16,7 +16,7 @@ export const useAuth = () => {
   // Load user and tokens from local storage on initialization
   useEffect(() => {
     const loadAuthData = async () => {
-      console.log("Loading auth data from local storage...");
+      // console.log("Loading auth data from local storage...");
       try {
         const storedUser = await AsyncStorage.getItem(USER_KEY);
         const storedAccessToken = await AsyncStorage.getItem(TOKEN_KEY);
@@ -73,7 +73,7 @@ export const useAuth = () => {
 
       setTokens(newTokens);
 
-      console.log("Tokens refreshed successfully:", newTokens);
+      // console.log("Tokens refreshed successfully:", newTokens);
     } catch (error) {
       console.error("Failed to refresh tokens:", error);
       throw error;
