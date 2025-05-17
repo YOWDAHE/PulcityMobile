@@ -1,13 +1,30 @@
-import { View, Text } from 'react-native'
-import React from 'react'
-import { Stack } from 'expo-router'
-import { PubNubProvider } from 'pubnub-react'
-import pubnub from '@/utils/pubnub';
+import { Stack } from "expo-router";
+import { PubNubProvider } from "pubnub-react";
+import pubnub from "@/utils/pubnub";
+import { Colors } from "@/constants/Colors";
 
-export default function _layout() {
+export default function Layout() {
   return (
     <PubNubProvider client={pubnub}>
-				<Stack screenOptions={{ headerShown: false }} />
-			</PubNubProvider>
-		);
+      <Stack
+        screenOptions={{
+          headerStyle: {
+            backgroundColor: Colors.background,
+          },
+          headerTintColor: Colors.primary,
+          headerTitleStyle: {
+            fontWeight: "600",
+          },
+          headerBackTitleVisible: false,
+        }}
+      >
+        <Stack.Screen
+          name="index"
+          options={{
+            headerShown: false,
+          }}
+        />
+      </Stack>
+    </PubNubProvider>
+  );
 }

@@ -1,27 +1,27 @@
-import { StyleSheet, Text, View } from "react-native";
-import React from "react";
+import { StyleSheet, View } from "react-native";
 import { PubNubProvider } from "pubnub-react";
 import pubnub from "@/utils/pubnub";
-import ChatScreen from "@/app/pages/chatScreen";
 import { SafeAreaView } from "react-native-safe-area-context";
-import GroupChatScreen from "@/app/pages/groupChatScreen";
+import ChatScreen from "@/app/pages/chatScreen";
+import { useLocalSearchParams } from "expo-router";
 
-const index = () => {
+const ChatPage = () => {
+  const { id } = useLocalSearchParams();
+
   return (
     <SafeAreaView style={styles.container}>
       <PubNubProvider client={pubnub}>
-        <GroupChatScreen />
+        <ChatScreen chatId={id as string} />
       </PubNubProvider>
     </SafeAreaView>
   );
 };
 
-export default index;
-
 const styles = StyleSheet.create({
   container: {
-        flex: 1,
-        backgroundColor: "#fff",
-    paddingBottom: 100
-    },
+    flex: 1,
+    backgroundColor: "#fff",
+  },
 });
+
+export default ChatPage;
