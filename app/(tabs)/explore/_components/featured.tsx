@@ -8,14 +8,21 @@ import {
 } from "react-native";
 import React from "react";
 import { Ionicons } from "@expo/vector-icons";
-import { Redirect, router } from "expo-router";
+import { Redirect, router, useRouter } from "expo-router";
+import { Event } from "@/models/event.model";
 
 const mockImage = require("../../../../assets/dummy/eventMock.png");
-const Featured = () => {
+const Featured = ({ event }: { event: Event }) => {
+	const router = useRouter();
+
+	const handlePress = () => {
+		router.push(`/event/${event.id}`);
+	};
+
 	return (
 		<View style={styles.wrapper}>
 			<View style={styles.container}>
-				<TouchableOpacity onPress={() => router.push("/event/123")}>
+				<TouchableOpacity onPress={handlePress}>
 					<View style={styles.imageContainer}>
 						<Image
 							source={mockImage}

@@ -4,6 +4,7 @@ export const TicketSchema = z.object({
     id: z.number(),
     event: z.number(),
     name: z.string(),
+    description: z.string(),
     price: z.string().regex(/^-?\d+(\.\d+)?$/, { message: "Invalid price format" }),
     valid_from: z.string().datetime({ message: "Invalid ISO 8601 datetime format" }),
     valid_until: z.string().datetime({ message: "Invalid ISO 8601 datetime format" }),

@@ -1,4 +1,4 @@
-import { Tabs } from "expo-router";
+import { Tabs, useNavigation } from "expo-router";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import {
 	View,
@@ -10,24 +10,44 @@ import {
 } from "react-native";
 import { useAuth } from "@/app/hooks/useAuth";
 import { LinearGradient } from "expo-linear-gradient";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import { useCallback, useEffect, useState } from "react";
+import { useFocusEffect } from "@react-navigation/native";
+import { User } from "@/models/auth.model";
+import { StatusBar } from "expo-status-bar";
 
 export default function ProfileTabs() {
-	const { user, logout } = useAuth();
+	const { user, logout, refreshUserData } = useAuth();
 	const insets = useSafeAreaInsets();
+	const navigation = useNavigation();
+	const [isRefreshing, setIsRefreshing] = useState(false);
+	const [authUser, setAuthUser] = useState<User>();
 
-	// Default avatar if user doesn't have one
+	useFocusEffect(
+		useCallback(() => {
+			const loadUserData = async () => {
+				setIsRefreshing(true);
+				try {
+					console.log("Refreshing user data in profile tab");
+					await refreshUserData();
+				} catch (error) {
+					console.error("Failed to refresh user data:", error);
+				} finally {
+					setIsRefreshing(false);
+				}
+			};
+
+			loadUserData();
+		}, [])
+	);
+
 	const userAvatar =
 		"https://ui-avatars.com/api/?name=" +
 		encodeURIComponent(`${user?.first_name || ""} ${user?.last_name || "User"}`);
 
 	return (
-		<View style={styles.container}>
-			{/* Header with gradient background */}
-			{/* <LinearGradient
-                colors={['#3B82F6', '#1E40AF']}
-                style={[styles.header, { paddingTop: insets.top }]}
-            > */}
+		<SafeAreaView style={styles.container}>
+			{/* <StatusBar style="light" /> */}
 			<View style={[styles.header]}>
 				<View style={styles.profileContainer}>
 					<Image source={{ uri: userAvatar }} style={styles.avatar} />
@@ -42,7 +62,6 @@ export default function ProfileTabs() {
 					</TouchableOpacity>
 				</View>
 			</View>
-			{/* </LinearGradient> */}
 
 			{/* Tabs */}
 			<Tabs
@@ -118,22 +137,22 @@ export default function ProfileTabs() {
 					}}
 				/>
 			</Tabs>
-		</View>
+		</SafeAreaView>
 	);
 }
 
 const styles = StyleSheet.create({
 	container: {
 		flex: 1,
-		backgroundColor: "#F9FAFB",
+		backgroundColor: "#3B82F6",
 	},
 	header: {
 		paddingHorizontal: 16,
 		paddingVertical: 20,
 		backgroundColor: "#3B82F6",
-		flexDirection: 'column',
-		alignItems: 'center',
-		justifyContent: 'center',
+		flexDirection: "column",
+		alignItems: "center",
+		justifyContent: "center",
 	},
 	profileContainer: {
 		flexDirection: "row",

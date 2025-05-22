@@ -13,6 +13,7 @@ interface TicketCardProps {
 	type: string;
 	rate: string;
 	date: string;
+	description: string;
 	time: string;
 	ticketId: number;
 	onBuyForAnother: (ticketType: number) => void;
@@ -27,6 +28,7 @@ const TicketCard: React.FC<TicketCardProps> = ({
 	type,
 	rate,
 	date,
+	description,
 	time,
 	onBuyForAnother,
 	ticketId,
@@ -62,6 +64,10 @@ const TicketCard: React.FC<TicketCardProps> = ({
 				<View style={styles.rateSection}>
 					<Text style={styles.rateAmountText}>{Number(rate).toFixed(0)} Birr</Text>
 					<Text style={styles.rateLabelText}>per person</Text>
+				</View>
+
+				<View style={styles.rateSection}>
+					<Text style={styles.rateLabelText}>{ description }</Text>
 				</View>
 
 				{/* Action Buttons */}

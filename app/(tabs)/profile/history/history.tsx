@@ -258,8 +258,8 @@ const History = () => {
 									// If parsing fails, check the raw string
 									if (ticket.eventDetails.location.toLowerCase().includes(query)) return true;
 								}
-							} 
-							// Handle location as object
+							}
+							
 							else if (ticket.eventDetails.location && typeof ticket.eventDetails.location === 'object') {
 								const locationObj = ticket.eventDetails.location as any;
 								if (locationObj.name && typeof locationObj.name === 'string' && 
@@ -272,7 +272,6 @@ const History = () => {
 						}
 					}
 					
-					// Check event organizer name
 					if (ticket.eventDetails.organizer?.profile?.name?.toLowerCase().includes(query)) return true;
 				}
 
@@ -284,7 +283,6 @@ const History = () => {
 			const filtered = events.filter((event) => {
 				if (event.title?.toLowerCase().includes(query)) return true;
 
-				// Format and check start_date for user-friendly searches
 				if (event.start_date) {
 					const date = new Date(event.start_date);
 					const formattedDate = date
@@ -296,13 +294,11 @@ const History = () => {
 						.toLowerCase();
 					if (formattedDate.includes(query)) return true;
 
-					// Also check month name alone (e.g., "may")
 					const monthName = date
 						.toLocaleDateString("en-US", { month: "long" })
 						.toLowerCase();
 					if (monthName.includes(query)) return true;
 
-					// Check for month + day format (e.g., "may 2")
 					const monthDay = date
 						.toLocaleDateString("en-US", {
 							month: "long",
@@ -312,11 +308,10 @@ const History = () => {
 					if (monthDay.includes(query)) return true;
 				}
 
-				// Check for location - safely parse if it's a string
 				if (typeof event.location === 'string') {
 					try {
 						const parsedLocation = JSON.parse(event.location);
-						// Check if parsedLocation has a name property that includes the query
+						
 						if (parsedLocation && typeof parsedLocation === 'object' && 
 							parsedLocation.name && typeof parsedLocation.name === 'string' && 
 							parsedLocation.name.toLowerCase().includes(query)) {
@@ -327,7 +322,6 @@ const History = () => {
 						if (event.location.toLowerCase().includes(query)) return true;
 					}
 				} else if (event.location && typeof event.location === 'object') {
-					// Type assertion for location object
 					const locationObj = event.location as any;
 					if (locationObj.name && typeof locationObj.name === 'string' && 
 						locationObj.name.toLowerCase().includes(query)) {
@@ -335,7 +329,6 @@ const History = () => {
 					}
 				}
 
-				// If hashtags exist and is an array, check if any hashtag includes the query
 				if (event.hashtags && Array.isArray(event.hashtags)) {
 					const hasMatchingTag = event.hashtags.some((tag) => {
 						// Type assertion for tag object
@@ -346,7 +339,6 @@ const History = () => {
 					if (hasMatchingTag) return true;
 				}
 
-				// Check other potentially searchable fields
 				if (event.description?.toLowerCase().includes(query)) return true;
 
 				return false;
@@ -359,39 +351,31 @@ const History = () => {
 	const handleSearch = (query: string) => {
 		console.log("History: received search query:", query);
 		
-		// Clear any previous timeouts to prevent race conditions
 		if ((handleSearch as any).timeoutId) {
 			clearTimeout((handleSearch as any).timeoutId);
 		}
 		
-		// Set a small delay to avoid excessive processing during rapid typing
 		(handleSearch as any).timeoutId = setTimeout(() => {
 			console.log("History: processing search query:", query);
 			setSearchQuery(query);
-			// Force filtering immediately
 			filterItems();
 		}, 100);
 	};
 
 	const toggleTab = (tab: HistoryTab) => {
-		// Reset search when changing tabs
 		setSearchQuery("");
 		
-		// Change tab
 		setActiveTab(tab);
 		setShowTabDropdown(false);
 		
-		// Reset filtered items to show all items from the selected tab
 		setFilteredItems(tab === "tickets" ? tickets : events);
 	};
 
-	// Add a search clear function that resets to showing all items
 	const clearSearch = () => {
 		setSearchQuery("");
 		setFilteredItems(activeTab === "tickets" ? tickets : events);
 	};
 
-	// Calculate animation values
 	const tabWidth = SCREEN_WIDTH / 2;
 	const translateX = slideAnim.interpolate({
 		inputRange: [0, 1],

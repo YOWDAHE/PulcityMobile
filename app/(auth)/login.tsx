@@ -62,9 +62,13 @@ export default function Login() {
 
 			const verifiedUser = await login(data.email, data.password);
 
+			// Save auth data and wait for it to complete
 			await saveAuthData(verifiedUser);
-
-			router.replace("/(tabs)/home");
+			
+			// Add a small delay to ensure state is updated before navigation
+			setTimeout(() => {
+				router.replace("/(tabs)/home?from=login");
+			}, 100);
 		} catch (err) {
 			setError(err instanceof Error ? err.message : "An error occurred");
 		} finally {

@@ -93,7 +93,7 @@ export default function SignUp() {
 			}
 			await saveAuthData(verifiedUser);
 
-			router.replace("/(tabs)/home");
+			router.replace("/(tabs)/home?from=register");
 		} catch (err) {
 			setError(err instanceof Error ? err.message : "An error occurred");
 		} finally {

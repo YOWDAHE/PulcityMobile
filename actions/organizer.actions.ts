@@ -13,17 +13,9 @@ const BASE_URL = "https://www.mindahun.pro.et/api/v1";
  * @returns Promise resolving to the organizer's data
  * @throws Error if the API request fails or the response is invalid
  */
-export const getOrganizerById = async (organizerId: number, accessToken: string): Promise<any> => {
+export const getOrganizerById = async (organizerId: number): Promise<any> => {
     try {
-        if (!accessToken) {
-            throw new Error("Access token is required to fetch the organizer");
-        }
-
-        const response = await axios.get(`${BASE_URL}/organizations/${organizerId}/`, {
-            headers: {
-                Authorization: `Bearer ${accessToken}`,
-            },
-        });
+        const response = await axiosInstance.get(`${BASE_URL}/organizations/${organizerId}/`);
 
         console.log("Fetched organizer successfully:", response.data);
         return response.data;

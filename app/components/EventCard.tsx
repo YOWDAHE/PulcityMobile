@@ -41,7 +41,6 @@ const EventCard = ({ event, showDots = true }: EventCardProps) => {
 			setLoading(true);
 			await followOrganizer(event.organizer.id);
 			setIsFollowing(true);
-			setIsFollowing(true);
 			console.log(
 				`Successfully followed organizer: ${event.organizer.profile.name}`
 			);
@@ -111,6 +110,8 @@ const EventCard = ({ event, showDots = true }: EventCardProps) => {
 		return null;
 	};
 
+	console.log(event.organizer.profile.logo_url);
+
 	return (
 		<View style={styles.container}>
 			{/* Header Content */}
@@ -170,7 +171,10 @@ const EventCard = ({ event, showDots = true }: EventCardProps) => {
 										borderWidth: 1,
 									}}
 								>
-									<TouchableOpacity>
+									<TouchableOpacity onPress={() => {
+										router.push(`/organizer/${event.organizer.id}`);
+										setActionsShown(false);
+									}}>
 										<Text>View Page</Text>
 									</TouchableOpacity>
 									<View
@@ -283,7 +287,7 @@ const EventCard = ({ event, showDots = true }: EventCardProps) => {
 					>
 						<Ionicons
 							name={event.bookmarked ? "bookmark" : "bookmark-outline"}
-							size={25}
+							size={24}
 							color="black"
 						/>
 						{/* <Ionicons name="bookmark-outline" size={20} color="black" /> */}
@@ -413,7 +417,7 @@ const styles = StyleSheet.create({
 		justifyContent: "space-between",
 		alignItems: "center",
 		paddingHorizontal: 10,
-		paddingVertical: 8,
+		paddingVertical: 10,
 	},
 	profileContainer: {
 		flexDirection: "row",

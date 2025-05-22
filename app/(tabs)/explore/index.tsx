@@ -92,6 +92,15 @@ export default function ExploreScreen() {
 		}
 	};
 
+	const filterPastEvents = (events: Event[]) => {
+		const currentDate = new Date();
+		return events.filter((event) => {
+			if (!event.start_date) return true;
+			const eventDate = new Date(event.start_date);
+			return eventDate >= currentDate;
+		});
+	};
+
 	const fetchNearbyEventsWithLocation = async () => {
 		try {
 			// Get current position
@@ -108,13 +117,28 @@ export default function ExploreScreen() {
 				radius: 10,
 			});
 			
-			setNearbyEvents(events);
+			// Filter out past events
+			setNearbyEvents(filterPastEvents(events));
 			setLocationError("");
 		} catch (error) {
 			console.error("Error fetching nearby events:", error);
 			setLocationError("Unable to determine your location. Please check your device settings.");
 		} finally {
 			setIsLoadingNearby(false);
+		}
+	};
+
+	const checkLocationPermission = async () => {
+		try {
+			const { status } = await Location.getForegroundPermissionsAsync();
+			setLocationPermissionStatus(status === 'granted' ? 'granted' : 'denied');
+			
+			if (status === 'granted') {
+				fetchNearbyEventsWithLocation();
+			}
+		} catch (error) {
+			console.error("Error checking location permission:", error);
+			setLocationPermissionStatus('denied');
 		}
 	};
 
@@ -127,8 +151,9 @@ export default function ExploreScreen() {
 						getPopularEvents(),
 						getFollowedEvents(),
 					]);
-					setPopularEvents(popular);
-					setFollowedEvents(following);
+					// Filter out past events
+					setPopularEvents(filterPastEvents(popular));
+					setFollowedEvents(filterPastEvents(following));
 				} catch (error) {
 					console.error("Error fetching events:", error);
 				} finally {
@@ -137,8 +162,9 @@ export default function ExploreScreen() {
 			};
 
 			fetchEvents();
-			// Don't automatically request location on screen focus
-			// We'll request it only when the user wants to see nearby events
+			
+			// Check location permission status when component mounts
+			checkLocationPermission();
 		}, [])
 	);
 
@@ -165,12 +191,14 @@ export default function ExploreScreen() {
 				const hashtagQuery = query.substring(1).trim();
 				if (hashtagQuery) {
 					const results = await searchEvents({ hashtags: hashtagQuery });
-					setSearchResults(results);
+					// Filter out past events
+					setSearchResults(filterPastEvents(results));
 				}
 			} else {
 				// Regular search
 				const results = await searchEvents({ q: query });
-				setSearchResults(results);
+				// Filter out past events
+				setSearchResults(filterPastEvents(results));
 			}
 		} catch (error) {
 			console.error("Search error:", error);
@@ -257,7 +285,7 @@ export default function ExploreScreen() {
 							<View style={styles.section}>
 								<View style={styles.sectionHeaderRow}>
 									<Text style={styles.sectionHeader}>Popular Events</Text>
-									<Text style={styles.seeAll}>See all</Text>
+									{/* <Text style={styles.seeAll}>See all</Text> */}
 								</View>
 								{popularEvents.length > 0 ? (
 									<ScrollView
@@ -277,7 +305,7 @@ export default function ExploreScreen() {
 							<View style={styles.section}>
 								<View style={styles.sectionHeaderRow}>
 									<Text style={styles.sectionHeader}>Nearby You</Text>
-									<Text style={styles.seeAll}>See all</Text>
+									{/* <Text style={styles.seeAll}>See all</Text> */}
 								</View>
 								
 								{isLoadingNearby ? (
@@ -285,7 +313,19 @@ export default function ExploreScreen() {
 										<ActivityIndicator size="small" color="#3B82F6" />
 										<Text style={styles.nearbyLoadingText}>Finding events near you...</Text>
 									</View>
-								) : locationPermissionStatus === "undetermined" || locationError ? (
+								) : locationPermissionStatus === "granted" && nearbyEvents.length > 0 ? (
+									<ScrollView
+										horizontal={true}
+										showsHorizontalScrollIndicator={false}
+										contentContainerStyle={styles.horizontalScroll}
+									>
+										{nearbyEvents.map((event) => (
+											<EventCard key={event.id} event={event} />
+										))}
+									</ScrollView>
+								) : locationPermissionStatus === "granted" && nearbyEvents.length === 0 ? (
+									<EmptyStateMessage message="No events found nearby" />
+								) : (
 									<View style={styles.locationPermissionContainer}>
 										<Ionicons name="location-outline" size={36} color="#666" />
 										<Text style={styles.locationPermissionText}>
@@ -298,25 +338,13 @@ export default function ExploreScreen() {
 											<Text style={styles.enableLocationButtonText}>Enable Location</Text>
 										</TouchableOpacity>
 									</View>
-								) : nearbyEvents.length > 0 ? (
-									<ScrollView
-										horizontal={true}
-										showsHorizontalScrollIndicator={false}
-										contentContainerStyle={styles.horizontalScroll}
-									>
-										{nearbyEvents.map((event) => (
-											<EventCard key={event.id} event={event} />
-										))}
-									</ScrollView>
-								) : (
-									<EmptyStateMessage message="No events found nearby" />
 								)}
 							</View>
 
 							<View style={styles.section}>
 								<View style={styles.sectionHeaderRow}>
 									<Text style={styles.sectionHeader}>Recommended</Text>
-									<Text style={styles.seeAll}>See all</Text>
+									{/* <Text style={styles.seeAll}>See all</Text> */}
 								</View>
 								{followedEvents.length > 0 ? (
 									<View style={styles.recommended}>

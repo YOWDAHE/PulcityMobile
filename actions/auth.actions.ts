@@ -156,3 +156,43 @@ export async function refreshToken(refresh: string): Promise<Tokens> {
         throw error;
     }
 }
+
+interface ProfileUpdateData {
+    bio?: string;
+    profile_photo_url?: string | null;
+    phone_number?: string | null;
+    date_of_birth?: string | null;
+    location?: string | null;
+    interests?: any | null;
+}
+
+/**
+ * Function to partially update the authenticated user's profile
+ * @param data - Profile data to update
+ * @returns Promise resolving to the updated profile data
+ * @throws Error if the API request fails
+ */
+export const updateUserProfile = async (data: ProfileUpdateData): Promise<ProfileUpdateData> => {
+    try {
+        const response = await axios.patch(`${BASE_URL}/users/profile/`, data);
+
+        if (response.data) {
+            console.log('Profile updated successfully:', response.data);
+            return response.data;
+        } else {
+            throw new Error('Invalid response format: Missing profile data');
+        }
+    } catch (error) {
+        if (axios.isAxiosError(error) && error.response) {
+            const apiErrors = error.response.data;
+            console.error("API validation errors:", apiErrors);
+            throw new Error(JSON.stringify(apiErrors));
+        } else if (error instanceof Error) {
+            console.error("Runtime error:", error.message);
+            throw error;
+        } else {
+            console.error("Unexpected error:", error);
+            throw new Error('An unexpected error occurred while updating profile');
+        }
+    }
+};

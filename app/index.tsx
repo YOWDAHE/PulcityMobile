@@ -1,11 +1,11 @@
-import { Redirect } from "expo-router";
+import { Redirect, useNavigation } from "expo-router";
 import { useAuth } from "./hooks/useAuth";
 
 export default function Index() {
+	const navigation = useNavigation();
+	const state = navigation.getState();
 
-	// if (!user) {
-	// 	logout();
-	// }
+	console.log(state);
 
 	return <Redirect href={true ? "/(tabs)/home" : "/(auth)/login"} />;
 }

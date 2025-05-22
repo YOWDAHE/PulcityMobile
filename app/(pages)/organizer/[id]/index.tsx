@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import {
 	StyleSheet,
 	View,
@@ -10,13 +10,20 @@ import {
 	Dimensions,
 	RefreshControl,
 	BackHandler,
+	SafeAreaView,
 } from "react-native";
-import { router, useLocalSearchParams } from "expo-router";
-import { getOrganizerPageDetail } from "@/actions/organizer.actions";
+import { LinearGradient } from "expo-linear-gradient";
+import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
+import {
+	followOrganizer,
+	getOrganizerPageDetail,
+	unfollowOrganizer,
+} from "@/actions/organizer.actions";
 import { Event } from "@/models/event.model";
 import { OrganizerPageInterface } from "@/models/organizer.model";
 import EventCard from "@/app/components/EventCard";
 import { Ionicons } from "@expo/vector-icons";
+import { Colors } from "@/constants/Colors";
 
 const ProfilePage = () => {
 	const { id } = useLocalSearchParams();
@@ -26,12 +33,28 @@ const ProfilePage = () => {
 	);
 	const [screenWidth, setScreenWidth] = useState(Dimensions.get("window").width);
 	const [loading, setLoading] = useState(false);
+	const [activeTab, setActiveTab] = useState<"grid" | "reviews">("grid");
 	const scrollViewRef = useRef<ScrollView>(null);
+	const [isFollowing, setIsFollowing] = useState(
+		details?.organization.profile.is_following
+	);
 
 	// Store dynamic heights of each event card
 	const [eventHeights, setEventHeights] = useState<number[]>([]);
 
+	// Calculate average rating from all events
+	const calculateAverageRating = (events: Event[]) => {
+		const validRatings = events.filter((event) => event.average_rating != null);
+		if (validRatings.length === 0) return null;
+		const sum = validRatings.reduce(
+			(acc, event) => acc + (event.average_rating || 0),
+			0
+		);
+		return (sum / validRatings.length).toFixed(1);
+	};
+
 	const fetchEvents = async () => {
+		console.log("Fetching org detail");
 		setLoading(true);
 		const res = await getOrganizerPageDetail(Number(id));
 		console.log("The detail: ", res);
@@ -39,29 +62,16 @@ const ProfilePage = () => {
 		setLoading(false);
 	};
 
+	useFocusEffect(
+		useCallback(() => {
+			fetchEvents();
+		}, [])
+	);
+
 	useEffect(() => {
-		fetchEvents();
+		// fetchEvents();
 		const updateWidth = () => setScreenWidth(Dimensions.get("window").width);
 		Dimensions.addEventListener("change", updateWidth);
-	}, []);
-
-	useEffect(() => {
-		const backAction = () => {
-			// console.log(selectedEventIndex);
-			// if (selectedEventIndex == null) {
-			// 	setSelectedEventIndex(null);
-			// } else {
-			// 	console.log("Going back ?");
-				router.push("/home");
-			// }
-			return true;
-		};
-
-		const backHandler = BackHandler.addEventListener(
-			"hardwareBackPress",
-			backAction
-		);
-		return () => backHandler.remove();
 	}, []);
 
 	const handleImagePress = (index: number) => {
@@ -75,6 +85,30 @@ const ProfilePage = () => {
 			newHeights[index] = height;
 			return newHeights;
 		});
+	};
+
+	const handleFollow = async () => {
+		try {
+			setLoading(true);
+			await followOrganizer(details!.organization.id);
+			setIsFollowing(true);
+		} catch (error) {
+			console.error("Failed to follow organizer:", error);
+		} finally {
+			setLoading(false);
+		}
+	};
+
+	const handleUnfollow = async () => {
+		try {
+			setLoading(true);
+			await unfollowOrganizer(details!.organization.id);
+			setIsFollowing(false);
+		} catch (error) {
+			console.error("Failed to follow organizer:", error);
+		} finally {
+			setLoading(false);
+		}
 	};
 
 	useEffect(() => {
@@ -92,16 +126,18 @@ const ProfilePage = () => {
 		}
 	}, [eventHeights, selectedEventIndex]);
 
-	if (details == undefined || loading)
+	if (details == undefined)
 		return (
 			<ScrollView
 				refreshControl={
 					<RefreshControl refreshing={loading} onRefresh={fetchEvents} />
 				}
 			>
-				<Text>Loading...</Text>
+				<Text>Something went wrong !</Text>
 			</ScrollView>
 		);
+
+	const averageRating = calculateAverageRating(details.events);
 
 	if (selectedEventIndex !== null) {
 		return (
@@ -117,16 +153,16 @@ const ProfilePage = () => {
 						position: "sticky",
 					}}
 				>
-						<Ionicons name="arrow-back" size={25} onPress={()=>setSelectedEventIndex(null)}/>
+					<Ionicons
+						name="arrow-back"
+						size={25}
+						onPress={() => setSelectedEventIndex(null)}
+					/>
 					<Text style={{ fontSize: 20 }}>Posts</Text>
 				</View>
 				<ScrollView ref={scrollViewRef} showsVerticalScrollIndicator={false}>
 					{details.events.map((event, index) => (
-						<View
-							key={event.id}
-							onLayout={onItemLayout(index)}
-							// style={{ marginBottom: 16 }}
-						>
+						<View key={event.id} onLayout={onItemLayout(index)}>
 							<EventCard event={event} />
 						</View>
 					))}
@@ -135,29 +171,87 @@ const ProfilePage = () => {
 		);
 	}
 
+	const renderReviewsList = () => (
+		<FlatList
+			data={details.events.filter((event) => event.average_rating != null)}
+			keyExtractor={(item) => item.id.toString()}
+			renderItem={({ item }) => (
+				<View style={styles.reviewItem}>
+					<Text style={styles.reviewEventTitle}>{item.title}</Text>
+					<View style={styles.ratingContainer}>
+						<Text style={styles.ratingText}>{item.average_rating?.toFixed(1)}</Text>
+						<Ionicons name="star" size={16} color="#FFD700" />
+						<Text style={styles.ratingCount}>({item.rating_count} reviews)</Text>
+					</View>
+				</View>
+			)}
+			contentContainerStyle={styles.reviewsContainer}
+		/>
+	);
+
 	return (
-		<View style={styles.container}>
+		<SafeAreaView style={styles.container}>
+			{/* Header with back button and title */}
+			<View style={styles.headerNav}>
+				<TouchableOpacity
+					onPress={() => router.back()}
+					hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+				>
+					<Ionicons name="arrow-back" size={24} color="black" />
+				</TouchableOpacity>
+				<Text style={styles.headerTitle}>{details.organization.profile.name}</Text>
+			</View>
+
 			{/* Profile Header */}
 			<View style={styles.profileHeader}>
+				{/* Profile Image */}
 				<Image
 					source={{ uri: details.organization.profile.logo_url }}
 					style={styles.profileImage}
 				/>
-				<View style={styles.profileInfo}>
-					<Text style={styles.nameText}>{details.organization.profile.name}</Text>
-					<Text style={styles.statsText}>
-						{details.organization.profile.description}
-					</Text>
-					<View style={{ flexDirection: "row", gap: 20 }}>
-						<Text style={styles.statsText}>{details.eventCount} events</Text>
-						<Text style={styles.statsText}>{details.followerCount} followers</Text>
+
+				{/* Stats section */}
+				<View style={styles.statsSection}>
+					<View style={styles.statItem}>
+						<Text style={styles.statNumber}>{details.eventCount}</Text>
+						<Text style={styles.statLabel}>Posts</Text>
+					</View>
+					<View style={styles.statItem}>
+						<Text style={styles.statNumber}>{details.followerCount}</Text>
+						<Text style={styles.statLabel}>Followers</Text>
+					</View>
+					<View style={styles.statItem}>
+						<View style={styles.ratingStatContainer}>
+							<Text style={styles.statNumber}>{averageRating || "-"}</Text>
+							{averageRating && <Ionicons name="star" size={16} color="#FFD700" />}
+						</View>
+						<Text style={styles.statLabel}>Av.Rating</Text>
 					</View>
 				</View>
 			</View>
 
-			<View></View>
+			{/* Profile Info */}
+			<View style={styles.profileInfo}>
+				<Text style={styles.nameText}>{details.organization.profile.name}</Text>
+				<Text style={styles.categoryText}>ORGANIZER</Text>
+				<Text style={styles.bioText} numberOfLines={2}>
+					{details.organization.profile.description}
+				</Text>
+			</View>
 
-			{/* Event Grid */}
+			{/* Action Buttons */}
+			<View style={styles.actionButtonsContainer}>
+				{isFollowing ? (
+					<TouchableOpacity style={styles.unfollowButton} onPress={handleUnfollow}>
+						<Text style={styles.unfollowButtonText}>Unfollow</Text>
+					</TouchableOpacity>
+				) : (
+					<TouchableOpacity style={styles.followButton} onPress={handleFollow}>
+						<Text style={styles.followButtonText}>Follow</Text>
+					</TouchableOpacity>
+				)}
+			</View>
+
 			<FlatList
 				data={details.events}
 				renderItem={({ item, index }) => (
@@ -173,7 +267,7 @@ const ProfilePage = () => {
 				numColumns={3}
 				contentContainerStyle={styles.gridContainer}
 			/>
-		</View>
+		</SafeAreaView>
 	);
 };
 
@@ -182,38 +276,189 @@ const styles = StyleSheet.create({
 		flex: 1,
 		backgroundColor: "#fff",
 	},
+	headerNav: {
+		flexDirection: "row",
+		alignItems: "center",
+		// justifyContent: "space-between",
+		gap: 15,
+		paddingHorizontal: 16,
+		height: 50,
+		borderBottomWidth: 0.5,
+		borderBottomColor: "#ddd",
+	},
+	headerTitle: {
+		fontSize: 16,
+		fontWeight: "600",
+	},
 	profileHeader: {
 		flexDirection: "row",
 		alignItems: "center",
-		padding: 16,
-		borderBottomWidth: 1,
-		borderBottomColor: "#eee",
+		paddingHorizontal: 16,
+		paddingVertical: 12,
 	},
 	profileImage: {
-		width: 80,
-		height: 80,
-		borderRadius: 40,
-		marginRight: 16,
+		width: 86,
+		height: 86,
+		borderRadius: 43,
+		marginRight: 20,
+		borderWidth: 0.5,
+		borderColor: "#ddd",
 	},
-	profileInfo: {
+	statsSection: {
 		flex: 1,
+		flexDirection: "row",
+		justifyContent: "space-around",
 	},
-	nameText: {
+	statItem: {
+		alignItems: "center",
+	},
+	statNumber: {
 		fontSize: 18,
 		fontWeight: "bold",
+	},
+	statLabel: {
+		fontSize: 12,
+		color: "#666",
+	},
+	profileInfo: {
+		paddingHorizontal: 16,
+		paddingBottom: 12,
+	},
+	nameText: {
+		fontSize: 14,
+		fontWeight: "bold",
+	},
+	categoryText: {
+		fontSize: 12,
+		color: "#666",
+		marginTop: 2,
 		marginBottom: 4,
 	},
-	statsText: {
+	bioText: {
+		fontSize: 14,
+		marginBottom: 4,
+	},
+	connectionText: {
+		fontSize: 12,
 		color: "#666",
-		marginVertical: 2,
+	},
+	actionButtonsContainer: {
+		flexDirection: "row",
+		paddingHorizontal: 16,
+		paddingBottom: 20,
+	},
+	followButton: {
+		flex: 1,
+		backgroundColor: "#3897f0",
+		padding: 7,
+		borderRadius: 4,
+		alignItems: "center",
+		marginRight: 8,
+	},
+	unfollowButton: {
+		flex: 1,
+		backgroundColor: "#fff",
+		padding: 7,
+		borderRadius: 4,
+		borderWidth: 1,
+		borderColor: "#ddd",
+		alignItems: "center",
+		marginRight: 8,
+	},
+	followButtonText: {
+		color: "white",
+		fontWeight: "600",
+		fontSize: 14,
+	},
+	unfollowButtonText: {
+		color: "black",
+		fontWeight: "600",
+		fontSize: 14,
+	},
+	messageButton: {
+		flex: 1,
+		backgroundColor: "#fff",
+		padding: 7,
+		borderRadius: 4,
+		alignItems: "center",
+		marginRight: 8,
+		borderWidth: 1,
+		borderColor: "#ddd",
+	},
+	messageButtonText: {
+		fontWeight: "600",
+		fontSize: 14,
+	},
+	moreButton: {
+		width: 30,
+		backgroundColor: "#fff",
+		padding: 7,
+		borderRadius: 4,
+		alignItems: "center",
+		justifyContent: "center",
+		borderWidth: 1,
+		borderColor: "#ddd",
+	},
+	tabsContainer: {
+		flexDirection: "row",
+		justifyContent: "space-around",
+		borderTopWidth: 0.5,
+		borderTopColor: "#ddd",
+		borderBottomWidth: 0.5,
+		borderBottomColor: "#ddd",
+		paddingVertical: 10,
+	},
+	tab: {
+		alignItems: "center",
+		padding: 8,
+	},
+	activeTab: {
+		borderBottomWidth: 1,
+		borderBottomColor: "#000",
 	},
 	gridContainer: {
-		padding: 2,
+		padding: 1,
 	},
 	eventImage: {
-		width: Dimensions.get("window").width / 3 - 4,
-		height: Dimensions.get("window").width / 3 - 4,
-		margin: 2,
+		width: Dimensions.get("window").width / 3 - 2,
+		height: Dimensions.get("window").width / 3 - 2,
+		margin: 1,
+	},
+	reviewItem: {
+		padding: 16,
+		borderBottomWidth: 0.5,
+		borderBottomColor: "#ddd",
+		backgroundColor: "white",
+	},
+	reviewEventTitle: {
+		fontSize: 16,
+		fontWeight: "600",
+		marginBottom: 8,
+		color: "#1a1a1a",
+	},
+	ratingContainer: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 4,
+	},
+	ratingText: {
+		fontSize: 15,
+		fontWeight: "600",
+		color: "#1a1a1a",
+	},
+	ratingCount: {
+		fontSize: 13,
+		color: "#666",
+		marginLeft: 4,
+	},
+	ratingStatContainer: {
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "center",
+		gap: 4,
+	},
+	reviewsContainer: {
+		backgroundColor: "#f5f5f5",
 	},
 });
 

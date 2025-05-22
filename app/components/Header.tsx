@@ -261,6 +261,7 @@ const styles = StyleSheet.create({
 		shadowRadius: 3.84,
 		elevation: 1000,
 		zIndex: 1000,
+		width: '100%'
 	},
 	dropdownItem: {
 		padding: 12,

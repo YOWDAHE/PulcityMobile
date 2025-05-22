@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
 	View,
 	Text,
@@ -12,7 +12,7 @@ import {
 import ButtonComponent from "@/components/ButtonComponent";
 import HeaderComponent from "@/components/HeaderComponent";
 import TicketCard from "@/components/TicketCard";
-import { router, useLocalSearchParams } from "expo-router";
+import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useAuth } from "@/app/hooks/useAuth";
 import { Ticket } from "@/models/ticket.model";
 import { getTicketsByEventId } from "@/actions/ticket.actions";
@@ -33,20 +33,21 @@ const BuyTicketsScreen: React.FC<BuyTicketsScreenProps> = ({
 	const { tokens } = useAuth();
 	const { id } = useLocalSearchParams();
 
-	useEffect(() => {
-		const fetchTicket = async () => {
-			try {
-				const fetchedTicket = await getTicketsByEventId(Number(id));
-				setTicket(fetchedTicket);
-			} catch (err) {
-				setError(err instanceof Error ? err.message : "An error occurred");
-			} finally {
-				setIsLoading(false);
-			}
-		};
-
-		fetchTicket();
-	}, [tokens]);
+	const fetchTicket = async () => {
+		try {
+			const fetchedTicket = await getTicketsByEventId(Number(id));
+			setTicket(fetchedTicket);
+		} catch (err) {
+			setError(err instanceof Error ? err.message : "An error occurred");
+		} finally {
+			setIsLoading(false);
+		}
+	};
+	useFocusEffect(
+		useCallback(() => {
+			fetchTicket();
+		}, [])
+	);
 
 	const [selectedTicketId, setSelectedTicketId] = useState<number | null>(null);
 	const [ticketQuantities, setTicketQuantities] = useState<
@@ -89,6 +90,7 @@ const BuyTicketsScreen: React.FC<BuyTicketsScreenProps> = ({
 								type={ticket.name}
 								rate={ticket.price}
 								ticketId={ticket.id}
+								description={ticket.description || "No description"}
 								date={new Date(ticket.valid_until).toLocaleDateString()}
 								time={new Date(ticket.valid_until).toLocaleTimeString([], {
 									hour: "2-digit",
@@ -124,7 +126,7 @@ const BuyTicketsScreen: React.FC<BuyTicketsScreenProps> = ({
 					onPress={async () => {
 						const finalTickets = [];
 						const processedQuantities = { ...ticketQuantities };
-						
+
 						if (selectedTicketId !== null) {
 							const currentQuantity = processedQuantities[selectedTicketId] || 0;
 							processedQuantities[selectedTicketId] = currentQuantity + 1;
@@ -175,7 +177,7 @@ const styles = StyleSheet.create({
 	},
 	scrollView: {
 		flex: 1,
-		marginBottom: 60
+		marginBottom: 60,
 	},
 	scrollContent: {
 		padding: 16,

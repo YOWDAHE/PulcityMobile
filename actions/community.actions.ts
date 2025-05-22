@@ -23,7 +23,6 @@ export const getCommunities = async (): Promise<Community[] | undefined> => {
 
         const communities = z.array(CommunitySchema).parse(response.data.results);
 
-        console.log("Fetched events successfully:", communities);
         return communities;
     } catch (error) {
         console.log("Error fetching community:", error);

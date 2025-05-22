@@ -15,6 +15,8 @@ import { Event } from "@/models/event.model";
 import { useAuth } from "@/app/hooks/useAuth";
 import { Header } from "@/app/components/Header";
 import { Ionicons } from "@expo/vector-icons";
+import { StatusBar } from "expo-status-bar";
+import { useLocalSearchParams } from "expo-router";
 
 type FeedType = 'all' | 'following' | 'upcoming';
 
@@ -23,17 +25,17 @@ const EmptyState = ({ type }: { type: FeedType }) => {
         all: {
             title: "No Events Found",
             message: "There are no events available at the moment.",
-            icon: "calendar-outline"
+            icon: "calendar" as const
         },
         following: {
             title: "No Events From Following",
             message: "Events from organizers you follow will appear here.",
-            icon: "people-outline"
+            icon: "people" as const
         },
         upcoming: {
             title: "No Upcoming Events",
             message: "You don't have any upcoming events.",
-            icon: "time-outline"
+            icon: "time" as const
         }
     };
 
@@ -54,6 +56,7 @@ export default function HomeScreen() {
     const [error, setError] = useState("");
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [feedType, setFeedType] = useState<FeedType>('all');
+    const { from } = useLocalSearchParams<{ from: string }>();
 
     const fetchEvents = async (type: FeedType = feedType) => {
         try {
@@ -73,6 +76,14 @@ export default function HomeScreen() {
                     break;
             }
             
+            // Filter out past events
+            const currentDate = new Date();
+            fetchedEvents = fetchedEvents.filter((event) => {
+                if (!event.start_date) return true;
+                const eventDate = new Date(event.start_date);
+                return eventDate >= currentDate;
+            });
+            
             setEvents(fetchedEvents);
             setError("");
         } catch (err) {
@@ -86,6 +97,13 @@ export default function HomeScreen() {
     useEffect(() => {
         fetchEvents(feedType);
     }, [feedType]);
+
+    // Add new useEffect to handle login/register redirects
+    useEffect(() => {
+        if (from === 'login' || from === 'register') {
+            fetchEvents(feedType);
+        }
+    }, [from]);
 
     const onRefresh = async () => {
         fetchEvents();
@@ -116,6 +134,7 @@ export default function HomeScreen() {
 
     return (
         <View style={styles.container}>
+            <StatusBar style="dark" />
             <Header feedType={feedType} onFeedTypeChange={setFeedType} />
             <ScrollView
                 refreshControl={

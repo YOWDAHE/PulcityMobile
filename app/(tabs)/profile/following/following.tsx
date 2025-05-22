@@ -16,6 +16,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { unfollowOrganizer } from "@/actions/organizer.actions";
 import { ScrollView } from "react-native-gesture-handler";
 import { RefreshControl } from "react-native";
+import { router } from "expo-router";
 
 export default function FollowingTab() {
 	const { tokens } = useAuth();
@@ -29,10 +30,6 @@ export default function FollowingTab() {
 	const fetchFollowing = async () => {
 		try {
 			setIsLoading(true);
-			if (!tokens?.access) {
-				throw new Error("Access token is missing. Please log in.");
-			}
-
 			const organizers = await fetchFollowingOrganizers();
 			setFollowingOrganizers(organizers);
 			setError("");
@@ -45,7 +42,7 @@ export default function FollowingTab() {
 	useFocusEffect(
 		React.useCallback(() => {
 			fetchFollowing();
-		}, [tokens])
+		}, [])
 	);
 
 	const handleUnfollow = async (id:number) => {
@@ -97,7 +94,10 @@ export default function FollowingTab() {
 										borderWidth: 1,
 									}}
 								>
-									<TouchableOpacity>
+									<TouchableOpacity onPress={() => {
+										router.push(`/organizer/${organizer.id}`)
+										setActionsShown(false)
+									}}>
 										<Text>View Page</Text>
 									</TouchableOpacity>
 									<View

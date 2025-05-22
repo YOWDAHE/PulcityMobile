@@ -10,11 +10,18 @@ import React from "react";
 import { Ionicons } from "@expo/vector-icons";
 import AttendeeAvatar from "./AttendeeAvatar";
 import { Event } from "@/models/event.model";
+import { useRouter } from "expo-router";
 
 const Recommended = ({ event }: { event: Event }) => {
+	const router = useRouter();
+
+	const handlePress = () => {
+		router.push(`/event/${event.id}`);
+	};
+
 	const mockImage = `https://picsum.photos/seed/${Math.random()}/200/300`;
 	return (
-		<View style={styles.container}>
+		<TouchableOpacity style={styles.container} onPress={handlePress}>
 			{/* <View style={styles.imageContainer}> */}
 			<Image
 				source={{ uri: event.cover_image_url[0] }}
@@ -27,9 +34,11 @@ const Recommended = ({ event }: { event: Event }) => {
 					<View style={styles.infoContainer}>
 						<Text style={styles.title}>{event.title}</Text>
 					</View>
-					<View style={styles.attendeesContainer}>
-						<AttendeeAvatar />
-						<Text style={styles.attendeesText}>+250 Going</Text>
+					<View style={styles.locationRow}>
+						<Ionicons name="location" size={14} color="#666" />
+						<Text style={styles.location} numberOfLines={1}>
+							{JSON.parse(event.location).name}
+						</Text>
 					</View>
 					<View style={styles.detailsContainer}>
 						<View style={styles.detailItem}>
@@ -54,7 +63,7 @@ const Recommended = ({ event }: { event: Event }) => {
 					</View>
 				</View>
 			</View>
-		</View>
+		</TouchableOpacity>
 	);
 };
 
@@ -100,7 +109,7 @@ const styles = StyleSheet.create({
 		paddingHorizontal: 8,
 		paddingRight: 2,
 		width: "100%",
-		gap: 2,
+		gap: 4,
 	},
 	infoContainer: {
 		flexDirection: "column",
@@ -159,5 +168,14 @@ const styles = StyleSheet.create({
 		fontWeight: "semibold",
 		fontSize: 11,
 		flex: 3,
+	},
+	locationRow: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 5,
+	},
+	location: {
+		color: "#666",
+		fontSize: 12,
 	},
 });

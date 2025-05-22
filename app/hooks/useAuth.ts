@@ -31,7 +31,7 @@ export const useAuth = () => {
         latitude: currentLocation.coords.latitude,
         longitude: currentLocation.coords.longitude,
       };
-      
+
       setLocation(locationData);
       await AsyncStorage.setItem(LOCATION_KEY, JSON.stringify(locationData));
 
@@ -56,67 +56,74 @@ export const useAuth = () => {
     }
   };
 
-  // Load user and tokens from local storage on initialization
-  useEffect(() => {
-    const loadAuthData = async () => {
-      // console.log("Loading auth data from local storage...");
-      try {
-        const [storedUser, storedAccessToken, storedRefreshToken, storedLocation] = await Promise.all([
-          AsyncStorage.getItem(USER_KEY),
-          AsyncStorage.getItem(TOKEN_KEY),
-          AsyncStorage.getItem(REFRESH_TOKEN_KEY),
-          AsyncStorage.getItem(LOCATION_KEY),
-        ]);
+  const loadAuthData = async () => {
+    try {
+      const [storedUser, storedAccessToken, storedRefreshToken, storedLocation] = await Promise.all([
+        AsyncStorage.getItem(USER_KEY),
+        AsyncStorage.getItem(TOKEN_KEY),
+        AsyncStorage.getItem(REFRESH_TOKEN_KEY),
+        AsyncStorage.getItem(LOCATION_KEY),
+      ]);
 
-        if (storedUser) {
-          setUser(JSON.parse(storedUser));
-          console.log("User loaded from local storage:", JSON.parse(storedUser));
-        }
-        if (storedAccessToken && storedRefreshToken) {
-          setTokens({ access: storedAccessToken, refresh: storedRefreshToken });
-        }
-        if (storedLocation) {
-          setLocation(JSON.parse(storedLocation));
-        }
-
-        // Request location permissions if we don't have stored location
-        if (!storedLocation) {
-          await requestAndTrackLocation();
-        }
-      } catch (error) {
-        console.error("Failed to load auth data:", error);
-      } finally {
-        setIsLoading(false);
+      if (storedUser) {
+        setUser(JSON.parse(storedUser));
+        console.log("User loaded from local storage:", JSON.parse(storedUser));
       }
-    };
+      if (storedAccessToken && storedRefreshToken) {
+        setTokens({ access: storedAccessToken, refresh: storedRefreshToken });
+      }
+      if (storedLocation) {
+        setLocation(JSON.parse(storedLocation));
+      }
 
+      if (!storedLocation) {
+        await requestAndTrackLocation();
+      }
+    } catch (error) {
+      console.error("Failed to load auth data:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
     loadAuthData();
   }, []);
 
-  // Save user and tokens to local storage
   const saveAuthData = async (verifiedUser: VerifiedUser) => {
     try {
       const { user, tokens } = verifiedUser;
 
       console.log("Saving user and tokens:", user, tokens);
 
-      // Save user and tokens to local storage
+      setUser(user);
+      setTokens(tokens);
+
       await AsyncStorage.setItem(USER_KEY, JSON.stringify(user));
       await AsyncStorage.setItem(TOKEN_KEY, tokens.access);
       await AsyncStorage.setItem(REFRESH_TOKEN_KEY, tokens.refresh);
 
-      // Update state
-      setUser(user);
-      setTokens(tokens);
-
-      // Request location tracking when user logs in
       await requestAndTrackLocation();
     } catch (error) {
       console.error("Failed to save auth data:", error);
     }
   };
 
-  // Refresh tokens
+  const refreshUserData = async () => {
+    try {
+      const storedUser = await AsyncStorage.getItem(USER_KEY);
+      if (storedUser) {
+        const parsedUser = JSON.parse(storedUser);
+        setUser(parsedUser);
+        return parsedUser;
+      }
+      return null;
+    } catch (error) {
+      console.error("Failed to refresh user data:", error);
+      return null;
+    }
+  };
+
   const refreshTokens = async () => {
     try {
       if (!tokens?.refresh) {
@@ -137,7 +144,6 @@ export const useAuth = () => {
     }
   };
 
-  // Clear user and tokens from local storage
   const logout = async () => {
     try {
       await Promise.all([
@@ -166,5 +172,6 @@ export const useAuth = () => {
     refreshTokens,
     logout,
     requestAndTrackLocation,
+    refreshUserData,
   };
 };

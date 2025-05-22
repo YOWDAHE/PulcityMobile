@@ -51,14 +51,17 @@ interface PresenceEventExtended extends PresenceEvent {
 interface ExtendedIMessage extends IMessage {
 	groupId?: string; // For tracking which group this image belongs to
 	originalImageUri?: string; // For storing the local URI before upload
+	replyTo?: IMessage; // Reference to the message being replied to
 }
 
 // Helper function to upload to Cloudinary
 const uploadToCloudinary = async (uri: string): Promise<string> => {
 	try {
-		// Get Cloudinary credentials from env
-		const cloudName = Constants.expoConfig?.extra?.CLOUDINARY_CLOUD_NAME;
-		const uploadPreset = Constants.expoConfig?.extra?.CLOUDINARY_UPLOAD_PRESET;
+		
+		const cloudName = "dwfimti8w";
+		const uploadPreset = "groups";
+		
+		console.log("Using Cloudinary config:", { cloudName, uploadPreset });
 		
 		if (!cloudName || !uploadPreset) {
 			throw new Error('Cloudinary configuration missing');
@@ -135,6 +138,9 @@ const Page = () => {
 	const [imageViewerVisible, setImageViewerVisible] = useState(false);
 	const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
+	// Add state for image loading
+	const [isImageLoading, setIsImageLoading] = useState(true);
+
 	useEffect(() => {
 		if (!authUser) return;
 
@@ -180,18 +186,22 @@ const Page = () => {
 						(message) => {
 							console.log("Processing history message:", message);
 							
-							// Get username from message data or use unknown
 							const userName = 
 								message.message.user?.name || 
 								(message.uuid && userMap[message.uuid]?.username) || 
 								"Unknown User";
 							
+							const replyData = message.message.replyTo ? {
+								replyTo: message.message.replyTo
+							} : {};
+							
 							return {
 								_id: message.timetoken.toString(),
 								text: message.message.text || '',
 								createdAt: new Date(Number(message.timetoken) / 10000),
-								image: message.message.image || undefined, // Add image URL if exists
-								groupId: message.message.groupId || String(id), // Add group ID
+								image: message.message.image || undefined,
+								groupId: message.message.groupId || String(id),
+								...replyData, // Include reply data
 								user: {
 									_id: message.uuid || "unknown",
 									name: userName,
@@ -234,18 +244,22 @@ const Page = () => {
 					if (!messageExists) {
 						console.log("Adding new message to state");
 						
-						// Get user info from the message or from our userMap
 						const userName = 
 							messageEvent.message.user?.name || 
 							(messageEvent.publisher && userMap[messageEvent.publisher]?.username) || 
 							"Unknown User";
 						
+						const replyData = messageEvent.message.replyTo ? {
+							replyTo: messageEvent.message.replyTo
+						} : {};
+						
 						const newMessage: ExtendedIMessage = {
 							_id: messageEvent.timetoken.toString(),
 							text: messageEvent.message.text,
 							createdAt: new Date(Number(messageEvent.timetoken) / 10000),
-							image: messageEvent.message.image, // Handle image property
-							groupId: messageEvent.message.groupId, // Store group ID
+							image: messageEvent.message.image,
+							groupId: messageEvent.message.groupId,
+							...replyData,
 							user: {
 								_id: messageEvent.publisher,
 								name: userName,
@@ -310,6 +324,19 @@ const Page = () => {
 			// Publish the message to PubNub
 			newMessages.forEach((message) => {
 				console.log("Sending message:", message.text, "Image:", message.image ? "Yes" : "No");
+				
+				// Add reply information if replying to a message
+				const replyData = replyMessage ? {
+					replyTo: {
+						_id: replyMessage._id,
+						text: replyMessage.text,
+						user: {
+							_id: replyMessage.user._id,
+							name: replyMessage.user.name,
+						}
+					}
+				} : {};
+				
 				pubnub.publish(
 					{
 						channel,
@@ -317,6 +344,7 @@ const Page = () => {
 							text: message.text,
 							createdAt: message.createdAt,
 							image: message.image,
+							...replyData, // Include reply data if present
 							user: {
 								_id: authUser.id,
 								name: authUser.username,
@@ -333,13 +361,24 @@ const Page = () => {
 				);
 			});
 
-			// Append the message locally
+			// Append the message locally with reply information
 			setMessages((prevMessages) => {
 				console.log("Updating local messages after send");
+				// Add reply information to the new messages if replying
+				if (replyMessage) {
+					newMessages = newMessages.map(msg => ({
+						...msg,
+						replyTo: replyMessage
+					}));
+					
+					// Clear the reply after sending
+					setReplyMessage(null);
+				}
+				
 				return GiftedChat.append(prevMessages, newMessages);
 			});
 		},
-		[authUser, pubnub, channel]
+		[authUser, pubnub, channel, replyMessage]
 	);
 
 	const handleTyping = useCallback((text: string) => {
@@ -353,7 +392,6 @@ const Page = () => {
 		});
 	}, []);
 
-	// Function to pick and upload image
 	const pickImage = async () => {
 		try {
 			// Request permission
@@ -364,18 +402,16 @@ const Page = () => {
 				return;
 			}
 
-			// Launch image library
 			const result = await ImagePicker.launchImageLibraryAsync({
 				mediaTypes: ImagePicker.MediaTypeOptions.Images,
 				allowsEditing: true,
-				aspect: [4, 3],
+				// aspect: [4, 3],
 				quality: 0.8,
 			});
 
 			console.log('Image picker result:', result);
 
 			if (!result.canceled && result.assets && result.assets[0]) {
-				// Start upload process
 				uploadAndSendImage(result.assets[0].uri);
 			}
 		} catch (error) {
@@ -384,7 +420,33 @@ const Page = () => {
 		}
 	};
 
-	// Upload image to Cloudinary then send message
+	const takePhoto = async () => {
+		try {
+			const { status } = await ImagePicker.requestCameraPermissionsAsync();
+			
+			if (status !== 'granted') {
+				Alert.alert('Permission Required', 'Sorry, we need camera permissions to make this work!');
+				return;
+			}
+			
+			const result = await ImagePicker.launchCameraAsync({
+				mediaTypes: ImagePicker.MediaTypeOptions.Images,
+				allowsEditing: true,
+				aspect: [4, 3],
+				quality: 0.8,
+			});
+			
+			console.log('Camera result:', result);
+			
+			if (!result.canceled && result.assets && result.assets[0]) {
+				uploadAndSendImage(result.assets[0].uri);
+			}
+		} catch (error) {
+			console.error('Error taking photo:', error);
+			Alert.alert('Error', 'Failed to take photo');
+		}
+	};
+
 	const uploadAndSendImage = async (imageUri: string) => {
 		if (!authUser || !imageUri) return;
 		
@@ -392,55 +454,67 @@ const Page = () => {
 		setUploadProgress(0);
 		
 		try {
-			// 1. Create a temporary message with local image for immediate feedback
 			const tempMessageId = `temp-${new Date().getTime()}`;
+			
+			// Add reply information if replying to a message
+			const replyData = replyMessage ? {
+				replyTo: replyMessage
+			} : {};
+			
 			const tempMessage: ExtendedIMessage = {
 				_id: tempMessageId,
 				text: '',
 				createdAt: new Date(),
 				image: imageUri,
-				originalImageUri: imageUri, // Store original URI
-				groupId: String(id), // Associate with current group/channel
-				pending: true, // Mark as pending
+				originalImageUri: imageUri,
+				groupId: String(id),
+				pending: true,
+				...replyData, // Include reply data
 				user: {
 					_id: String(authUser.id),
 					name: authUser.username,
 				},
 			};
 			
-			// Add temporary message to local state
 			setMessages(previousMessages => 
 				GiftedChat.append(previousMessages, [tempMessage])
 			);
 			
-			// 2. Upload to Cloudinary
 			setUploadProgress(30);
 			const cloudinaryUrl = await uploadToCloudinary(imageUri);
 			setUploadProgress(80);
 			
-			// 3. Create final message with Cloudinary URL
 			const finalMessageId = new Date().getTime().toString();
 			const finalMessage: ExtendedIMessage = {
 				_id: finalMessageId,
 				text: '',
 				createdAt: new Date(),
 				image: cloudinaryUrl,
-				groupId: String(id), // Associate with current group/channel
+				groupId: String(id),
+				...replyData, // Include reply data
 				user: {
 					_id: String(authUser.id),
 					name: authUser.username,
 				},
 			};
 			
-			// 4. Replace temp message with final message
 			setMessages(previousMessages => {
-				// Filter out the temporary message
 				const filteredMessages = previousMessages.filter(msg => msg._id !== tempMessageId);
-				// Add the new message with the cloudinary URL
 				return GiftedChat.append(filteredMessages, [finalMessage]);
 			});
 			
-			// 5. Publish message to PubNub
+			// Add reply information if replying to a message
+			const replyDataForPublish = replyMessage ? {
+				replyTo: {
+					_id: replyMessage._id,
+					text: replyMessage.text,
+					user: {
+						_id: replyMessage.user._id,
+						name: replyMessage.user.name,
+					}
+				}
+			} : {};
+			
 			pubnub.publish(
 				{
 					channel,
@@ -449,6 +523,7 @@ const Page = () => {
 						createdAt: finalMessage.createdAt,
 						image: cloudinaryUrl,
 						groupId: String(id),
+						...replyDataForPublish, // Include reply data
 						user: {
 							_id: authUser.id,
 							name: authUser.username,
@@ -462,6 +537,11 @@ const Page = () => {
 					} else {
 						console.log("Image message sent successfully:", response);
 						setUploadProgress(100);
+						
+						// Clear the reply after sending
+						if (replyMessage) {
+							setReplyMessage(null);
+						}
 					}
 				}
 			);
@@ -537,34 +617,65 @@ const Page = () => {
 
 	// Function to handle image tap
 	const handleImageTap = (imageUrl: string) => {
+		console.log("Opening image in viewer:", imageUrl);
+		
+		if (!imageUrl || typeof imageUrl !== 'string') {
+			console.error("Invalid image URL:", imageUrl);
+			Alert.alert("Error", "Invalid image URL format");
+			return;
+		}
+		
+		if (!imageUrl.startsWith('http://') && !imageUrl.startsWith('https://')) {
+			console.error("URL must start with http:// or https://:", imageUrl);
+			Alert.alert("Error", "Invalid image URL");
+			return;
+		}
+		
 		setSelectedImage(imageUrl);
 		setImageViewerVisible(true);
 	};
 
-	// Add custom rendering for image messages with loading states and tap handling
 	const renderMessageImage = (props: any) => {
 		const { currentMessage } = props;
-		const isPending = currentMessage.pending === true;
+		if (!currentMessage?.image) {
+			console.log("Message has no image:", currentMessage);
+			return null;
+		}
+		
+		console.log("Rendering message image:", currentMessage.image);
+		
+		const borderColor = authUser?.id && currentMessage.user._id === authUser.id 
+			? '#E9F7FA' 
+			: '#F0F0F0';
 		
 		return (
 			<TouchableOpacity 
-				style={styles.imageContainer}
-				onPress={() => currentMessage.image && handleImageTap(currentMessage.image)}
-				activeOpacity={0.8}
+				onPress={() => handleImageTap(currentMessage.image)}
+				style={[styles.imageContainer, { borderColor }]}
 			>
-				<MessageImage {...props} />
-				
-				{isPending && (
-					<View style={styles.imageOverlay}>
-						<ActivityIndicator size="large" color="#ffffff" />
-						<Text style={styles.uploadingText}>Uploading...</Text>
+				<Image
+					source={{ uri: currentMessage.image }}
+					style={styles.messageImage}
+					onError={(error) => {
+						console.error("Error loading message image:", error.nativeEvent.error);
+					}}
+					resizeMode="cover"
+				/>
+				{currentMessage.pending && (
+					<View style={styles.pendingOverlay}>
+						<ActivityIndicator size="small" color="#FFFFFF" />
 					</View>
 				)}
 			</TouchableOpacity>
 		);
 	};
 
-	// Image Viewer Modal
+	// useEffect(() => {
+	// 	if (imageViewerVisible) {
+	// 		setIsImageLoading(true);
+	// 	}
+	// }, [imageViewerVisible]);
+
 	const renderImageViewer = () => {
 		return (
 			<Modal
@@ -572,23 +683,52 @@ const Page = () => {
 				transparent={true}
 				onRequestClose={() => setImageViewerVisible(false)}
 				animationType="fade"
+				statusBarTranslucent={true}
 			>
-				<View style={styles.modalContainer}>
+				<TouchableOpacity
+					style={styles.modalOverlay}
+					activeOpacity={1}
+					onPress={() => setImageViewerVisible(false)}
+				>
 					<TouchableOpacity 
 						style={styles.closeButton}
 						onPress={() => setImageViewerVisible(false)}
+						activeOpacity={0.7}
 					>
 						<Ionicons name="close" size={28} color="#fff" />
 					</TouchableOpacity>
 					
 					{selectedImage && (
-						<Image
-							source={{ uri: selectedImage }}
-							style={styles.fullImage}
-							resizeMode="contain"
-						/>
+						<TouchableOpacity 
+							style={styles.centeredImageContainer}
+							activeOpacity={1}
+							onPress={(e) => e.stopPropagation()}
+						>
+							<Image
+								source={{ uri: selectedImage }}
+								style={styles.fullScreenImage}
+								resizeMode="contain"
+								onLoadStart={() => setIsImageLoading(true)}
+								onLoad={() => setIsImageLoading(false)}
+								onError={(error) => {
+									console.error("Error loading image:", error.nativeEvent.error);
+									setIsImageLoading(false);
+									Alert.alert("Error", "Failed to load image. Please try again.");
+								}}
+							/>
+							
+							{isImageLoading && (
+								<View style={styles.centeredLoadingIndicator}>
+									<ActivityIndicator 
+										size="large" 
+										color="#ffffff" 
+									/>
+									<Text style={styles.loadingText}>Loading image...</Text>
+								</View>
+							)}
+						</TouchableOpacity>
 					)}
-				</View>
+				</TouchableOpacity>
 			</Modal>
 		);
 	};
@@ -625,22 +765,42 @@ const Page = () => {
 				renderUsernameOnMessage={true}
 				renderMessageImage={renderMessageImage}
 				renderBubble={(props) => {
-					const isCurrentUser = props.currentMessage.user._id == authUser?.id;
+					// Cast the props to use our extended message type
+					const bubbleProps = props as unknown as { currentMessage: ExtendedIMessage };
+					const currentMessage = bubbleProps.currentMessage;
+					const isCurrentUser = currentMessage.user._id == authUser?.id;
+					
 					return (
 						<View>
-							{/* {!isCurrentUser && (
-								<Text
-									style={{
-										color: '#3B82F6',
+							{/* Show reply information if message is a reply */}
+							{currentMessage.replyTo && (
+								<View style={{
+									backgroundColor: Colors.lightGray,
+									padding: 6, 
+									borderRadius: 8,
+									marginBottom: 4,
+									marginLeft: isCurrentUser ? 0 : 10,
+									marginRight: isCurrentUser ? 10 : 0,
+									marginTop: 2,
+									maxWidth: '80%',
+									alignSelf: isCurrentUser ? 'flex-end' : 'flex-start'
+								}}>
+									<Text style={{
 										fontSize: 12,
 										fontWeight: '600',
-										marginBottom: 2,
-										marginLeft: 10,
-									}}
-								>
-									{props.currentMessage.user.name}
-								</Text>
-							)} */}
+										color: Colors.primary
+									}}>
+										{currentMessage.replyTo.user.name}
+									</Text>
+									<Text style={{
+										fontSize: 12,
+										color: Colors.gray,
+										marginTop: 2
+									}} numberOfLines={2}>
+										{currentMessage.replyTo.text}
+									</Text>
+								</View>
+							)}
 							<Bubble
 								{...props}
 								textStyle={{
@@ -680,7 +840,13 @@ const Page = () => {
 					>
 						{!props.text || props.text.trim().length === 0 ? (
 							<>
-								<Ionicons name="camera-outline" color={Colors.primary} size={28} />
+								<TouchableOpacity
+									disabled={isUploading}
+									onPress={takePhoto}
+									activeOpacity={0.7}
+								>
+									<Ionicons name="camera-outline" color={Colors.primary} size={28} />
+								</TouchableOpacity>
 								<Ionicons name="mic-outline" color={Colors.primary} size={28} />
 							</>
 						) : (
@@ -727,6 +893,10 @@ const styles = StyleSheet.create({
 	},
 	imageContainer: {
 		position: 'relative',
+		borderRadius: 13,
+		overflow: 'hidden',
+		margin: 3,
+		// borderWidth: 1,
 	},
 	imageOverlay: {
 		position: 'absolute',
@@ -744,15 +914,11 @@ const styles = StyleSheet.create({
 		fontSize: 14,
 		fontWeight: '600',
 	},
-	modalContainer: {
+	modalOverlay: {
 		flex: 1,
 		backgroundColor: 'rgba(0,0,0,0.9)',
 		justifyContent: 'center',
 		alignItems: 'center',
-	},
-	fullImage: {
-		width: Dimensions.get('window').width,
-		height: Dimensions.get('window').height * 0.8,
 	},
 	closeButton: {
 		position: 'absolute',
@@ -760,6 +926,52 @@ const styles = StyleSheet.create({
 		right: 20,
 		zIndex: 10,
 		padding: 10,
+		backgroundColor: 'rgba(0,0,0,0.5)',
+		borderRadius: 20,
+	},
+	centeredImageContainer: {
+		flex: 1,
+		justifyContent: 'center',
+		alignItems: 'center',
+		width: '100%',
+		height: '100%',
+	},
+	fullScreenImage: {
+		width: Dimensions.get('window').width * 0.9,
+		height: Dimensions.get('window').height * 0.8,
+		borderRadius: 8,
+	},
+	centeredLoadingIndicator: {
+		position: 'absolute',
+		top: 0,
+		left: 0,
+		right: 0,
+		bottom: 0,
+		justifyContent: 'center',
+		alignItems: 'center',
+		backgroundColor: 'rgba(0,0,0,0.3)',
+	},
+	loadingText: {
+		color: '#ffffff',
+		marginTop: 10,
+		fontSize: 14,
+		fontWeight: '600',
+	},
+	messageImage: {
+		width: 150,
+		height: 150,
+		// borderWidth: 2,
+		borderColor: '#E9F7FA',
+	},
+	pendingOverlay: {
+		position: 'absolute',
+		top: 0,
+		left: 0,
+		right: 0,
+		bottom: 0,
+		backgroundColor: 'rgba(0,0,0,0.4)',
+		justifyContent: 'center',
+		alignItems: 'center',
 	},
 });
 

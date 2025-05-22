@@ -11,55 +11,67 @@ import { Ionicons } from "@expo/vector-icons";
 import AttendeeAvatar from "./AttendeeAvatar";
 import { Colors } from "@/constants/Colors";
 import { Event } from "@/models/event.model";
-import { router } from "expo-router";
+import { useRouter } from "expo-router";
 
 const EventCard = ({ event }: { event: Event }) => {
+	const router = useRouter();
+
+	const handlePress = () => {
+		router.push(`/event/${event.id}`);
+	};
+
 	const mockImage = `https://picsum.photos/seed/${Math.random()}/200/300`;
 	return (
-		<View style={styles.container}>
-			<View style={styles.imageContainer}>
-				<Image
-					source={{ uri: event.cover_image_url[0] }}
-					style={styles.coverImage}
-					accessibilityLabel="Concert venue with lights"
-				/>
-			</View>
-
-			<View style={styles.contentContainer}>
-				<View style={styles.infoContainer}>
-					<Text style={styles.title}>{event.title}</Text>
-					<View style={styles.detailsContainer}>
-						<View style={styles.detailItem}>
-							<Ionicons name="calendar" />
-							<Text style={styles.detailText}>
-								{new Date(event.start_date).toLocaleDateString("en-US", {
-									month: "short",
-									day: "numeric",
-									year: "numeric",
-								})}
-							</Text>
-						</View>
-						<View style={styles.detailItem}>
-							<Ionicons name="time-outline" />
-							<Text style={styles.detailText}>
-								{new Date(event.start_time).toLocaleTimeString([], {
-									hour: "2-digit",
-									minute: "2-digit",
-								})}
-							</Text>
-						</View>
+		<TouchableOpacity style={styles.card} onPress={handlePress}>
+			<Image
+				source={{
+					uri: event.cover_image_url?.[0] || "https://placehold.co/400x200",
+				}}
+				style={styles.image}
+			/>
+			<View style={styles.content}>
+				<Text style={styles.title} numberOfLines={1}>
+					{event.title}
+				</Text>
+				<View style={styles.locationRow}>
+					<Ionicons name="location" size={14} color="#666" />
+					<Text style={styles.location} numberOfLines={1}>
+						{JSON.parse(event.location).name}
+					</Text>
+				</View>
+				<View style={styles.detailsContainer}>
+					<View style={styles.detailItem}>
+						<Ionicons name="calendar" />
+						<Text style={styles.detailText}>
+							{new Date(event.start_date).toLocaleDateString("en-US", {
+								month: "short",
+								day: "numeric",
+								year: "numeric",
+							})}
+						</Text>
+					</View>
+					<View style={styles.detailItem}>
+						<Ionicons name="time-outline" />
+						<Text style={styles.detailText}>
+							{new Date(event.start_time).toLocaleTimeString([], {
+								hour: "2-digit",
+								minute: "2-digit",
+							})}
+						</Text>
 					</View>
 				</View>
 			</View>
-			<View style={styles.attendeesContainer}>
-				{/* <AttendeeAvatar /> */}
+			{/* <View style={styles.attendeesContainer}>
 				<Text style={styles.attendeesText}>{ event.attendee_count } attendee</Text>
-			</View>
-			<TouchableOpacity style={styles.button} onPress={() => router.push(`/event/${event.id}`)}>
+			</View> */}
+			<TouchableOpacity
+				style={styles.button}
+				onPress={() => router.push(`/event/${event.id}`)}
+			>
 				<Text style={styles.buttonText}>Buy Tickets</Text>
 				<Ionicons name="chevron-forward" color="white" />
 			</TouchableOpacity>
-		</View>
+		</TouchableOpacity>
 	);
 };
 
@@ -72,12 +84,10 @@ const styles = StyleSheet.create({
 		justifyContent: "center",
 		alignItems: "center",
 	},
-	container: {
+	card: {
 		width: 220,
 		padding: 5,
 		borderRadius: 10,
-		// borderWidth: 0.5,
-		// borderColor: "rgba(0,0,0,0.4)",
 		backgroundColor: "white",
 		position: "relative",
 		gap: 10,
@@ -86,55 +96,60 @@ const styles = StyleSheet.create({
 		flexDirection: "column",
 		justifyContent: "space-between",
 	},
-	imageBackground: {
-		flex: 1,
-		width: "100%",
-		height: 500,
-		resizeMode: "cover",
-		borderRadius: 10,
-		overflow: "hidden",
-	},
-	imageContainer: {
+	image: {
 		width: "100%",
 		height: 224,
 		borderRadius: 6,
 		overflow: "hidden",
 	},
-	coverImage: {
-		width: "100%",
-		height: "100%",
-		// resizeMode: "cover",
-	},
-	contentContainer: {
+	content: {
 		flexDirection: "column",
 		justifyContent: "space-between",
 		alignItems: "flex-start",
 		paddingHorizontal: 8,
 		paddingRight: 2,
 		width: "100%",
-	},
-	infoContainer: {
-		flexDirection: "column",
-		gap: 10,
-		width: 187,
+		gap: 8,
 	},
 	title: {
 		color: "#000",
 		fontSize: 15,
 		fontWeight: "400",
 	},
-	detailsContainer: {
+	locationRow: {
 		flexDirection: "row",
-		alignItems: "flex-start",
-		gap: 15,
-		opacity: 0.52,
+		alignItems: "center",
+		gap: 5,
 	},
-	detailItem: {
+	location: {
+		color: "#666",
+		fontSize: 14,
+	},
+	footer: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 10,
+	},
+	dateTime: {
 		flexDirection: "row",
 		alignItems: "center",
 		gap: 3,
 	},
-	detailText: {
+	date: {
+		color: "#000",
+		fontSize: 11,
+	},
+	stats: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 5,
+	},
+	statItem: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 3,
+	},
+	statText: {
 		color: "#000",
 		fontSize: 11,
 	},
@@ -152,7 +167,6 @@ const styles = StyleSheet.create({
 	buttonText: {
 		color: "white",
 		fontSize: 14,
-		// fontWeight: "500",
 	},
 	attendeesContainer: {
 		flexDirection: "row",
@@ -163,12 +177,27 @@ const styles = StyleSheet.create({
 		paddingVertical: 2,
 		borderRadius: 6,
 		paddingLeft: 8,
-		// backgroundColor: "rgba(0,0,0,0.4)",
 	},
 	attendeesText: {
-		// color: "white",
 		fontWeight: "semibold",
 		fontSize: 11,
 		flex: 2,
+	},
+	detailsContainer: {
+		flexDirection: "row",
+		alignItems: "flex-start",
+		gap: 15,
+		opacity: 0.3,
+		justifyContent: "space-between",
+		width: "100%",
+	},
+	detailItem: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 3,
+	},
+	detailText: {
+		color: "#000",
+		fontSize: 11,
 	},
 });

@@ -6,14 +6,30 @@ import { useCallback, useEffect, useState } from "react";
 import { getCommunities, getCommunityById } from "@/actions/community.actions";
 import { useFocusEffect } from "expo-router";
 import { Community } from "@/models/community.model";
+import { Ionicons } from "@expo/vector-icons";
+
+// Empty state component
+const EmptyState = () => (
+	<View style={styles.emptyStateContainer}>
+		<Ionicons name="chatbubble-outline" size={64} color="#ccc" />
+		<Text style={styles.emptyStateTitle}>No Groups Found</Text>
+		<Text style={styles.emptyStateMessage}>
+			Register for an event to join groups
+		</Text>
+	</View>
+);
 
 const Page = () => {
 	const [groups, setGroups] = useState<Community[]>([]);
 	const [losding, setLoading] = useState(false);
 	const fetchCommunity = async () => {
 		const groups = await getCommunities();
-		if (groups == undefined) return;
-		setGroups(groups);
+		const threeDaysAgo = new Date();
+		threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+		const filteredGroups =
+			groups?.filter((group) => new Date(group.event.end_date) > threeDaysAgo) ??
+			[];
+		setGroups(groups!);
 		console.log("Groups: ", groups);
 	};
 	useFocusEffect(
@@ -26,16 +42,21 @@ const Page = () => {
 			<View style={styles.header}>
 				<Text style={styles.headerTitle}>Groups</Text>
 			</View>
-			<FlatList
-				data={groups}
-				renderItem={({ item }) => <ChatRow {...item} />}
-				keyExtractor={(item) => item.id.toString()}
-				ItemSeparatorComponent={() => (
-					<View style={[defaultStyles.separator, { marginLeft: 90 }]} />
-				)}
-				contentContainerStyle={styles.listContent}
-				style={styles.list}
-			/>
+
+			{groups.length === 0 ? (
+				<EmptyState />
+			) : (
+				<FlatList
+					data={groups}
+					renderItem={({ item }) => <ChatRow {...item} />}
+					keyExtractor={(item) => item.id.toString()}
+					ItemSeparatorComponent={() => (
+						<View style={[defaultStyles.separator, { marginLeft: 90 }]} />
+					)}
+					contentContainerStyle={styles.listContent}
+					style={styles.list}
+				/>
+			)}
 		</View>
 	);
 };
@@ -63,6 +84,23 @@ const styles = StyleSheet.create({
 	},
 	listContent: {
 		paddingTop: 8,
+	},
+	emptyStateContainer: {
+		flex: 1,
+		justifyContent: "center",
+		alignItems: "center",
+		padding: 20,
+	},
+	emptyStateTitle: {
+		fontSize: 20,
+		fontWeight: "600",
+		marginTop: 16,
+		marginBottom: 8,
+	},
+	emptyStateMessage: {
+		fontSize: 16,
+		color: "#666",
+		textAlign: "center",
 	},
 });
 
