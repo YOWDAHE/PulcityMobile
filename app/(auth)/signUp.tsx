@@ -9,6 +9,9 @@ import {
 	KeyboardAvoidingView,
 	Platform,
 	ScrollView,
+	Dimensions,
+	TouchableWithoutFeedback,
+	Keyboard,
 } from "react-native";
 import { useForm, Controller } from "react-hook-form";
 import { router } from "expo-router";
@@ -18,6 +21,8 @@ import { signUp, verifyEmail, resendOtp } from "../../actions/auth.actions";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { userSignUpSchema } from "@/models/auth.model";
 import * as Linking from 'expo-linking';
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 
 type FormData = {
 	email: string;
@@ -27,6 +32,8 @@ type FormData = {
 	password: string;
 };
 
+const { width } = Dimensions.get('window');
+
 export default function SignUp() {
 	const [isLoading, setIsLoading] = useState(false);
 	const [error, setError] = useState("");
@@ -35,6 +42,7 @@ export default function SignUp() {
 	const [email, setEmail] = useState("");
 	const [password, setPassword] = useState("");
 	const [otp, setOtp] = useState("");
+	const [showPassword, setShowPassword] = useState(false);
 	const { saveAuthData } = useAuth();
 
 	const {
@@ -114,232 +122,331 @@ export default function SignUp() {
 	if (isVerificationMode || isVerificationEmailMode) {
 		return (
 			<SafeAreaView style={styles.container}>
-				<KeyboardAvoidingView
-					behavior={Platform.OS === "ios" ? "padding" : "height"}
-					style={styles.container}
+				<LinearGradient
+					colors={['#3B82F6', '#1E40AF']}
+					style={styles.gradientBackground}
 				>
-					<ScrollView
-						contentContainerStyle={styles.scrollContent}
-						keyboardShouldPersistTaps="handled"
-						showsVerticalScrollIndicator={false}
+					<KeyboardAvoidingView
+						behavior={Platform.OS === "ios" ? "padding" : "height"}
+						style={styles.keyboardAvoidingView}
 					>
-						<View style={styles.header}>
-							<Text style={styles.appName}>Pulcity</Text>
-							<Text style={styles.subtitle}>Verify Your Email</Text>
-						</View>
+						<ScrollView
+							contentContainerStyle={styles.scrollContent}
+							keyboardShouldPersistTaps="handled"
+							showsVerticalScrollIndicator={false}
+						>
+							<TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+								<View style={styles.innerContainer}>
+									<View style={styles.header}>
+										<View style={styles.logoContainer}>
+											<Ionicons name="ticket-outline" size={48} color="#ffffff" />
+										</View>
+										<Text style={styles.appName}>Pulcity</Text>
+										<Text style={styles.subtitle}>Verify Your Account</Text>
+									</View>
 
-						<View style={styles.form}>
-							{isVerificationMode && (
-								<Text style={styles.infoText}>
-									We’ve sent a verification email to {email}. Please enter the OTP sent
-									to your email to verify your account.
-								</Text>
-							)}
+									<View style={styles.formContainer}>
+										<View style={styles.formHeader}>
+											<Text style={styles.formTitle}>Email Verification</Text>
+											<Text style={styles.formSubtitle}>One last step to get started</Text>
+										</View>
 
-							{/* OTP Input Field */}
-							{isVerificationMode && (
-								<View style={styles.inputContainer}>
-									<Text style={styles.label}>OTP</Text>
-									<TextInput
-										style={[styles.input, error && styles.inputError]}
-										placeholder="Enter OTP"
-										keyboardType="numeric"
-										autoCapitalize="none"
-										value={otp}
-										onChangeText={setOtp}
-									/>
+										<View style={styles.form}>
+											{isVerificationMode && (
+												<Text style={styles.infoText}>
+													We've sent a verification code to {email}. Please enter the code below to verify your account.
+												</Text>
+											)}
+
+											{/* OTP Input Field */}
+											{isVerificationMode && (
+												<View style={styles.inputContainer}>
+													<Text style={styles.label}>Verification Code</Text>
+													<View style={styles.inputWrapper}>
+														<Ionicons name="key-outline" size={20} color="#666" style={styles.inputIcon} />
+														<TextInput
+															style={styles.input}
+															placeholder="Enter verification code"
+															placeholderTextColor="#999"
+															keyboardType="numeric"
+															autoCapitalize="none"
+															value={otp}
+															onChangeText={setOtp}
+														/>
+													</View>
+												</View>
+											)}
+											{isVerificationEmailMode && (
+												<View style={styles.inputContainer}>
+													<Text style={styles.label}>Email</Text>
+													<View style={styles.inputWrapper}>
+														<Ionicons name="mail-outline" size={20} color="#666" style={styles.inputIcon} />
+														<TextInput
+															style={styles.input}
+															placeholder="Enter your email"
+															placeholderTextColor="#999"
+															keyboardType="email-address"
+															autoCapitalize="none"
+															value={email}
+															onChangeText={setEmail}
+														/>
+													</View>
+												</View>
+											)}
+
+											{error !== "" && (
+												<View style={styles.errorContainer}>
+													<Ionicons name="alert-circle" size={18} color="#ff4444" />
+													<Text style={styles.errorText}>{error}</Text>
+												</View>
+											)}
+
+											<Pressable
+												style={[styles.button, isLoading && styles.buttonDisabled]}
+												onPress={isVerificationMode ? onVerifyEmail : onVerifyExistingEmail}
+												disabled={isLoading}
+											>
+												{isLoading ? (
+													<ActivityIndicator color="#fff" />
+												) : (
+													<>
+														<Text style={styles.buttonText}>
+															{isVerificationMode ? "Verify Code" : "Send Verification Code"}
+														</Text>
+														<Ionicons name="arrow-forward" size={20} color="#fff" style={styles.buttonIcon} />
+													</>
+												)}
+											</Pressable>
+
+											<Pressable
+												style={styles.secondaryButton}
+												onPress={() => router.push("/(auth)/login")}
+											>
+												<Text style={styles.secondaryButtonText}>Back to Login</Text>
+											</Pressable>
+										</View>
+									</View>
 								</View>
-							)}
-							{isVerificationEmailMode && (
-								<View style={styles.inputContainer}>
-									<TextInput
-										style={[styles.input, error && styles.inputError]}
-										placeholder="Enter Email"
-										autoCapitalize="none"
-										value={email}
-										onChangeText={setEmail}
-									/>
-								</View>
-							)}
-
-							{error !== "" && <Text style={styles.errorText}>{error}</Text>}
-
-							<Pressable
-								style={[styles.button, isLoading && styles.buttonDisabled]}
-								onPress={isVerificationMode ? onVerifyEmail : onVerifyExistingEmail}
-								disabled={isLoading}
-							>
-								{isLoading ? (
-									<ActivityIndicator color="#fff" />
-								) : (
-									<Text style={styles.buttonText}>Verify Email</Text>
-								)}
-							</Pressable>
-						</View>
-					</ScrollView>
-				</KeyboardAvoidingView>
+							</TouchableWithoutFeedback>
+						</ScrollView>
+					</KeyboardAvoidingView>
+				</LinearGradient>
 			</SafeAreaView>
 		);
 	}
 
 	return (
 		<SafeAreaView style={styles.container}>
-			<KeyboardAvoidingView
-				behavior={Platform.OS === "ios" ? "padding" : "height"}
-				style={styles.container}
+			<LinearGradient
+				colors={['#3B82F6', '#1E40AF']}
+				style={styles.gradientBackground}
 			>
-				<ScrollView
-					contentContainerStyle={styles.scrollContent}
-					keyboardShouldPersistTaps="handled"
-					showsVerticalScrollIndicator={false}
+				<KeyboardAvoidingView
+					behavior={Platform.OS === "ios" ? "padding" : "height"}
+					style={styles.keyboardAvoidingView}
 				>
-					<View style={styles.header}>
-						<Text style={styles.appName}>Pulcity</Text>
-						<Text style={styles.subtitle}>Sign up to get started</Text>
-					</View>
-
-					<View style={styles.form}>
-						<Controller
-							control={control}
-							name="email"
-							render={({ field: { onChange, value, onBlur } }) => (
-								<View style={styles.inputContainer}>
-									<Text style={styles.label}>Email</Text>
-									<TextInput
-										style={[styles.input, errors.email && styles.inputError]}
-										placeholder="Enter your email"
-										keyboardType="email-address"
-										autoCapitalize="none"
-										value={value}
-										onChangeText={onChange}
-										onBlur={onBlur}
-									/>
-									{errors.email && (
-										<Text style={styles.errorText}>{errors.email.message}</Text>
-									)}
+					<ScrollView
+						contentContainerStyle={styles.scrollContent}
+						keyboardShouldPersistTaps="handled"
+						showsVerticalScrollIndicator={false}
+					>
+						<TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+							<View style={styles.innerContainer}>
+								<View style={styles.header}>
+									<View style={styles.logoContainer}>
+										<Ionicons name="ticket-outline" size={48} color="#ffffff" />
+									</View>
+									<Text style={styles.appName}>Pulcity</Text>
+									<Text style={styles.subtitle}>Join the Community</Text>
 								</View>
-							)}
-						/>
 
-						<Controller
-							control={control}
-							name="username"
-							render={({ field: { onChange, value, onBlur } }) => (
-								<View style={styles.inputContainer}>
-									<Text style={styles.label}>Username</Text>
-									<TextInput
-										style={[styles.input, errors.username && styles.inputError]}
-										placeholder="Enter your username"
-										autoCapitalize="none"
-										value={value}
-										onChangeText={onChange}
-										onBlur={onBlur}
-									/>
-									{errors.username && (
-										<Text style={styles.errorText}>{errors.username.message}</Text>
-									)}
+								<View style={styles.formContainer}>
+									<View style={styles.formHeader}>
+										<Text style={styles.formTitle}>Create Account</Text>
+										<Text style={styles.formSubtitle}>Sign up to get started</Text>
+									</View>
+
+									<View style={styles.form}>
+										<Controller
+											control={control}
+											name="email"
+											render={({ field: { onChange, value, onBlur } }) => (
+												<View style={styles.inputContainer}>
+													<Text style={styles.label}>Email</Text>
+													<View style={[styles.inputWrapper, errors.email && styles.inputWrapperError]}>
+														<Ionicons name="mail-outline" size={20} color="#666" style={styles.inputIcon} />
+														<TextInput
+															style={styles.input}
+															placeholder="Enter your email"
+															placeholderTextColor="#999"
+															keyboardType="email-address"
+															autoCapitalize="none"
+															value={value}
+															onChangeText={onChange}
+															onBlur={onBlur}
+														/>
+													</View>
+													{errors.email && (
+														<Text style={styles.errorText}>{errors.email.message}</Text>
+													)}
+												</View>
+											)}
+										/>
+
+										<Controller
+											control={control}
+											name="username"
+											render={({ field: { onChange, value, onBlur } }) => (
+												<View style={styles.inputContainer}>
+													<Text style={styles.label}>Username</Text>
+													<View style={[styles.inputWrapper, errors.username && styles.inputWrapperError]}>
+														<Ionicons name="person-outline" size={20} color="#666" style={styles.inputIcon} />
+														<TextInput
+															style={styles.input}
+															placeholder="Choose a username"
+															placeholderTextColor="#999"
+															autoCapitalize="none"
+															value={value}
+															onChangeText={onChange}
+															onBlur={onBlur}
+														/>
+													</View>
+													{errors.username && (
+														<Text style={styles.errorText}>{errors.username.message}</Text>
+													)}
+												</View>
+											)}
+										/>
+
+										<View style={styles.nameRow}>
+											<Controller
+												control={control}
+												name="first_name"
+												render={({ field: { onChange, value, onBlur } }) => (
+													<View style={[styles.inputContainer, styles.nameInput]}>
+														<Text style={styles.label}>First Name</Text>
+														<View style={[styles.inputWrapper, errors.first_name && styles.inputWrapperError]}>
+															<Ionicons name="person-outline" size={20} color="#666" style={styles.inputIcon} />
+															<TextInput
+																style={styles.input}
+																placeholder="First name"
+																placeholderTextColor="#999"
+																autoCapitalize="words"
+																value={value}
+																onChangeText={onChange}
+																onBlur={onBlur}
+															/>
+														</View>
+														{errors.first_name && (
+															<Text style={styles.errorText}>{errors.first_name.message}</Text>
+														)}
+													</View>
+												)}
+											/>
+
+											<Controller
+												control={control}
+												name="last_name"
+												render={({ field: { onChange, value, onBlur } }) => (
+													<View style={[styles.inputContainer, styles.nameInput]}>
+														<Text style={styles.label}>Last Name</Text>
+														<View style={[styles.inputWrapper, errors.last_name && styles.inputWrapperError]}>
+															<Ionicons name="person-outline" size={20} color="#666" style={styles.inputIcon} />
+															<TextInput
+																style={styles.input}
+																placeholder="Last name"
+																placeholderTextColor="#999"
+																autoCapitalize="words"
+																value={value}
+																onChangeText={onChange}
+																onBlur={onBlur}
+															/>
+														</View>
+														{errors.last_name && (
+															<Text style={styles.errorText}>{errors.last_name.message}</Text>
+														)}
+													</View>
+												)}
+											/>
+										</View>
+
+										<Controller
+											control={control}
+											name="password"
+											render={({ field: { onChange, value, onBlur } }) => (
+												<View style={styles.inputContainer}>
+													<Text style={styles.label}>Password</Text>
+													<View style={[styles.inputWrapper, errors.password && styles.inputWrapperError]}>
+														<Ionicons name="lock-closed-outline" size={20} color="#666" style={styles.inputIcon} />
+														<TextInput
+															style={styles.input}
+															placeholder="Create a password"
+															placeholderTextColor="#999"
+															secureTextEntry={!showPassword}
+															autoCapitalize="none"
+															value={value}
+															onChangeText={onChange}
+															onBlur={onBlur}
+														/>
+														<Pressable 
+															onPress={() => setShowPassword(!showPassword)}
+															style={styles.passwordToggle}
+														>
+															<Ionicons 
+																name={showPassword ? "eye-off-outline" : "eye-outline"} 
+																size={20} 
+																color="#666" 
+															/>
+														</Pressable>
+													</View>
+													{errors.password && (
+														<Text style={styles.errorText}>{errors.password.message}</Text>
+													)}
+												</View>
+											)}
+										/>
+
+										{error !== "" && (
+											<View style={styles.errorContainer}>
+												<Ionicons name="alert-circle" size={18} color="#ff4444" />
+												<Text style={styles.errorText}>{error}</Text>
+											</View>
+										)}
+
+										<Pressable
+											style={[styles.button, isLoading && styles.buttonDisabled]}
+											onPress={handleSubmit(onSubmit)}
+											disabled={isLoading}
+										>
+											{isLoading ? (
+												<ActivityIndicator color="#fff" />
+											) : (
+												<>
+													<Text style={styles.buttonText}>Create Account</Text>
+													<Ionicons name="arrow-forward" size={20} color="#fff" style={styles.buttonIcon} />
+												</>
+											)}
+										</Pressable>
+
+										<View style={styles.divider}>
+											<View style={styles.dividerLine} />
+											<Text style={styles.dividerText}>OR</Text>
+											<View style={styles.dividerLine} />
+										</View>
+
+										<Pressable
+											onPress={() => router.push("/(auth)/login")}
+											style={styles.secondaryButton}
+										>
+											<Text style={styles.secondaryButtonText}>Sign In Instead</Text>
+										</Pressable>
+									</View>
 								</View>
-							)}
-						/>
-
-						<Controller
-							control={control}
-							name="first_name"
-							render={({ field: { onChange, value, onBlur } }) => (
-								<View style={styles.inputContainer}>
-									<Text style={styles.label}>First Name</Text>
-									<TextInput
-										style={[styles.input, errors.first_name && styles.inputError]}
-										placeholder="Enter your first name"
-										autoCapitalize="words"
-										value={value}
-										onChangeText={onChange}
-										onBlur={onBlur}
-									/>
-									{errors.first_name && (
-										<Text style={styles.errorText}>{errors.first_name.message}</Text>
-									)}
-								</View>
-							)}
-						/>
-
-						<Controller
-							control={control}
-							name="last_name"
-							render={({ field: { onChange, value, onBlur } }) => (
-								<View style={styles.inputContainer}>
-									<Text style={styles.label}>Last Name</Text>
-									<TextInput
-										style={[styles.input, errors.last_name && styles.inputError]}
-										placeholder="Enter your last name"
-										autoCapitalize="words"
-										value={value}
-										onChangeText={onChange}
-										onBlur={onBlur}
-									/>
-									{errors.last_name && (
-										<Text style={styles.errorText}>{errors.last_name.message}</Text>
-									)}
-								</View>
-							)}
-						/>
-
-						<Controller
-							control={control}
-							name="password"
-							render={({ field: { onChange, value, onBlur } }) => (
-								<View style={styles.inputContainer}>
-									<Text style={styles.label}>Password</Text>
-									<TextInput
-										style={[styles.input, errors.password && styles.inputError]}
-										placeholder="Create a password"
-										secureTextEntry
-										autoCapitalize="none"
-										value={value}
-										onChangeText={onChange}
-										onBlur={onBlur}
-									/>
-									{errors.password && (
-										<Text style={styles.errorText}>{errors.password.message}</Text>
-									)}
-								</View>
-							)}
-						/>
-
-						{error !== "" && <Text style={styles.errorText}>{error}</Text>}
-
-						<Pressable
-							style={[styles.button, isLoading && styles.buttonDisabled]}
-							onPress={handleSubmit(onSubmit)}
-							disabled={isLoading}
-						>
-							{isLoading ? (
-								<ActivityIndicator color="#fff" />
-							) : (
-								<Text style={styles.buttonText}>Create Account</Text>
-							)}
-						</Pressable>
-
-						<Pressable
-							onPress={() => router.push("/(auth)/login")}
-							style={styles.linkButton}
-						>
-							<Text style={styles.linkText}>
-								Already have an account? <Text style={styles.linkTextBold}>Login</Text>
-							</Text>
-						</Pressable>
-						
-
-						{/* Verify Email Text */}
-						{/* <Pressable
-							style={styles.verifyEmailButton}
-							onPress={() => setIsVerificationEmailMode(true)}
-						>
-							<Text style={styles.verifyEmailText}>Verify Email</Text>
-						</Pressable> */}
-					</View>
-				</ScrollView>
-			</KeyboardAvoidingView>
+							</View>
+						</TouchableWithoutFeedback>
+					</ScrollView>
+				</KeyboardAvoidingView>
+			</LinearGradient>
 		</SafeAreaView>
 	);
 }
@@ -347,98 +454,184 @@ export default function SignUp() {
 const styles = StyleSheet.create({
 	container: {
 		flex: 1,
-		backgroundColor: "#fff",
+	},
+	gradientBackground: {
+		flex: 1,
+		width: '100%',
+	},
+	keyboardAvoidingView: {
+		flex: 1,
 	},
 	scrollContent: {
 		flexGrow: 1,
 	},
+	innerContainer: {
+		flex: 1,
+		justifyContent: 'space-between',
+	},
 	header: {
-		padding: 24,
-		paddingTop: 60,
-		display: "flex",
-		justifyContent: "center",
-		alignItems: "center",
+		paddingTop: Platform.OS === 'android' ? 40 : 20,
+		paddingBottom: 20,
+		alignItems: 'center',
+	},
+	logoContainer: {
+		width: 80,
+		height: 80,
+		borderRadius: 20,
+		backgroundColor: 'rgba(255, 255, 255, 0.2)',
+		justifyContent: 'center',
+		alignItems: 'center',
+		marginBottom: 16,
 	},
 	appName: {
-		fontSize: 30,
-		fontWeight: "semibold",
-		marginTop: 10,
+		fontSize: 32,
+		fontWeight: '700',
+		color: '#ffffff',
+		marginBottom: 8,
 	},
 	subtitle: {
 		fontSize: 16,
-		color: "#666",
+		color: 'rgba(255, 255, 255, 0.8)',
+		letterSpacing: 0.5,
 	},
-	infoText: {
-		fontSize: 14,
-		color: "#333",
-		textAlign: "center",
-		marginBottom: 20,
+	formContainer: {
+		backgroundColor: '#ffffff',
+		borderTopLeftRadius: 30,
+		borderTopRightRadius: 30,
+		paddingTop: 30,
+		paddingBottom: Platform.OS === 'ios' ? 40 : 24,
+		paddingHorizontal: 24,
+		shadowColor: '#000',
+		shadowOffset: { width: 0, height: -3 },
+		shadowOpacity: 0.1,
+		shadowRadius: 6,
+		elevation: 10,
+	},
+	formHeader: {
+		marginBottom: 24,
+	},
+	formTitle: {
+		fontSize: 24,
+		fontWeight: '700',
+		color: '#333',
+		marginBottom: 8,
+	},
+	formSubtitle: {
+		fontSize: 16,
+		color: '#666',
 	},
 	form: {
-		flex: 1,
-		padding: 24,
-		gap: 20,
+		gap: 16,
+	},
+	nameRow: {
+		flexDirection: 'row',
+		justifyContent: 'space-between',
+	},
+	nameInput: {
+		flex: 0.48,
 	},
 	inputContainer: {
 		gap: 8,
 	},
 	label: {
 		fontSize: 14,
-		fontWeight: "500",
-		color: "#333",
+		fontWeight: '600',
+		color: '#333',
+		marginLeft: 4,
+	},
+	inputWrapper: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		height: 56,
+		borderWidth: 1,
+		borderColor: '#e0e0e0',
+		borderRadius: 12,
+		backgroundColor: '#f9f9f9',
+		paddingHorizontal: 16,
+	},
+	inputWrapperError: {
+		borderColor: '#ff4444',
+		borderWidth: 1.5,
+	},
+	inputIcon: {
+		marginRight: 12,
 	},
 	input: {
-		height: 48,
-		borderWidth: 1,
-		borderColor: "#ddd",
-		borderRadius: 8,
-		paddingHorizontal: 16,
+		flex: 1,
 		fontSize: 16,
-		backgroundColor: "#f8f8f8",
+		color: '#333',
 	},
-	inputError: {
-		borderColor: "#ff4444",
+	passwordToggle: {
+		padding: 8,
+	},
+	infoText: {
+		fontSize: 16,
+		color: '#666',
+		textAlign: "center",
+		lineHeight: 22,
+		marginBottom: 12,
 	},
 	errorText: {
-		color: "#ff4444",
-		fontSize: 12,
+		color: '#ff4444',
+		fontSize: 13,
+		marginLeft: 4,
 		marginTop: 4,
 	},
+	errorContainer: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		backgroundColor: '#FFE5E5',
+		padding: 10,
+		borderRadius: 8,
+		marginBottom: 10,
+	},
 	button: {
-		height: 48,
-		backgroundColor: "#007AFF",
-		borderRadius: 24,
-		justifyContent: "center",
-		alignItems: "center",
+		height: 56,
+		backgroundColor: '#3B82F6',
+		borderRadius: 12,
+		justifyContent: 'center',
+		alignItems: 'center',
 		marginTop: 12,
+		flexDirection: 'row',
 	},
 	buttonDisabled: {
 		opacity: 0.7,
 	},
 	buttonText: {
-		color: "#fff",
+		color: '#fff',
 		fontSize: 16,
-		fontWeight: "600",
+		fontWeight: '600',
 	},
-	verifyEmailButton: {
-		marginTop: -10,
-		alignItems: "center",
+	buttonIcon: {
+		marginLeft: 8,
 	},
-	verifyEmailText: {
-		color: "#007AFF",
+	divider: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		marginVertical: 16,
+	},
+	dividerLine: {
+		flex: 1,
+		height: 1,
+		backgroundColor: '#e0e0e0',
+	},
+	dividerText: {
+		color: '#666',
 		fontSize: 14,
-		fontWeight: "500",
+		marginHorizontal: 12,
 	},
-	linkButton: {
-		alignItems: "center",
-		padding: 12,
+	secondaryButton: {
+		height: 56,
+		borderWidth: 1,
+		borderColor: '#3B82F6',
+		borderRadius: 12,
+		justifyContent: 'center',
+		alignItems: 'center',
+		backgroundColor: 'transparent',
 	},
-	linkText: {
-		color: "#666",
-		fontSize: 14,
-	},
-	linkTextBold: {
-		color: "#007AFF",
-		fontWeight: "600",
+	secondaryButtonText: {
+		color: '#3B82F6',
+		fontSize: 16,
+		fontWeight: '600',
 	},
 });

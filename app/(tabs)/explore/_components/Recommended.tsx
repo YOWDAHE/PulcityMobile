@@ -9,14 +9,15 @@ import {
 import React from "react";
 import { Ionicons } from "@expo/vector-icons";
 import AttendeeAvatar from "./AttendeeAvatar";
+import { Event } from "@/models/event.model";
 
-const Recommended = () => {
+const Recommended = ({ event }: { event: Event }) => {
 	const mockImage = `https://picsum.photos/seed/${Math.random()}/200/300`;
 	return (
 		<View style={styles.container}>
 			{/* <View style={styles.imageContainer}> */}
 			<Image
-				source={{ uri: mockImage }}
+				source={{ uri: event.cover_image_url[0] }}
 				style={styles.coverImage}
 				accessibilityLabel="Concert venue with lights"
 			/>
@@ -24,7 +25,7 @@ const Recommended = () => {
 			<View style={styles.contentWrapper}>
 				<View style={styles.contentContainer}>
 					<View style={styles.infoContainer}>
-						<Text style={styles.title}>Tamino Tour 2024</Text>
+						<Text style={styles.title}>{event.title}</Text>
 					</View>
 					<View style={styles.attendeesContainer}>
 						<AttendeeAvatar />
@@ -33,11 +34,22 @@ const Recommended = () => {
 					<View style={styles.detailsContainer}>
 						<View style={styles.detailItem}>
 							<Ionicons name="calendar" />
-							<Text style={styles.detailText}>Dec 16, 2024</Text>
+							<Text style={styles.detailText}>
+								{new Date(event.start_date).toLocaleDateString("en-US", {
+									month: "short",
+									day: "numeric",
+									year: "numeric",
+								})}
+							</Text>
 						</View>
 						<View style={styles.detailItem}>
 							<Ionicons name="time-outline" />
-							<Text style={styles.detailText}>8:00 PM</Text>
+							<Text style={styles.detailText}>
+								{new Date(event.start_time).toLocaleTimeString([], {
+									hour: "2-digit",
+									minute: "2-digit",
+								})}
+							</Text>
 						</View>
 					</View>
 				</View>

@@ -1,4 +1,4 @@
-import { View, Text, ScrollView, FlatList } from "react-native";
+import { View, Text, ScrollView, FlatList, StyleSheet } from "react-native";
 import chats from "@/assets/data/chats.json";
 import ChatRow from "@/components/ChatRow";
 import { defaultStyles } from "@/constants/Styles";
@@ -22,15 +22,10 @@ const Page = () => {
 		}, [])
 	);
 	return (
-		// <ScrollView
-		// 	contentInsetAdjustmentBehavior="automatic"
-		// 	contentContainerStyle={{
-		// 		paddingBottom: 40,
-		// 		flex: 1,
-		// 		backgroundColor: "#fff",
-		// 	}}
-		// >
-		<View style={{ flex: 1 }}>
+		<View style={styles.container}>
+			<View style={styles.header}>
+				<Text style={styles.headerTitle}>Groups</Text>
+			</View>
 			<FlatList
 				data={groups}
 				renderItem={({ item }) => <ChatRow {...item} />}
@@ -38,14 +33,37 @@ const Page = () => {
 				ItemSeparatorComponent={() => (
 					<View style={[defaultStyles.separator, { marginLeft: 90 }]} />
 				)}
-				scrollEnabled={true}
-				style={{
-					paddingTop: 60,
-					flex: 1,
-					backgroundColor: "#fff",
-				}}
+				contentContainerStyle={styles.listContent}
+				style={styles.list}
 			/>
 		</View>
 	);
 };
+
+const styles = StyleSheet.create({
+	container: {
+		flex: 1,
+		backgroundColor: "#fff",
+	},
+	header: {
+		paddingHorizontal: 16,
+		paddingTop: 16,
+		paddingBottom: 8,
+		backgroundColor: "#fff",
+		borderBottomWidth: 1,
+		borderBottomColor: "#eee",
+	},
+	headerTitle: {
+		fontSize: 24,
+		fontWeight: "bold",
+	},
+	list: {
+		flex: 1,
+		backgroundColor: "#fff",
+	},
+	listContent: {
+		paddingTop: 8,
+	},
+});
+
 export default Page;

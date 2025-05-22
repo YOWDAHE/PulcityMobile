@@ -1,102 +1,123 @@
 import { useNavigation } from "expo-router";
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  Touchable,
-  Pressable,
+	View,
+	Text,
+	TouchableOpacity,
+	StyleSheet,
+	Pressable,
+	Image,
 } from "react-native";
 
 interface TicketCardProps {
-  type: string;
-  rate: string;
-  date: string;
-  time: string;
-  onBuyForAnother: (ticketType: string) => void;
-  isSelected: boolean;
-  onSelect: () => void;
+	type: string;
+	rate: string;
+	date: string;
+	time: string;
+	ticketId: number;
+	onBuyForAnother: (ticketType: number) => void;
+	isSelected: boolean;
+	onSelect: () => void;
+	quantityForOthers: number;
+	onIncrease: () => void;
+	onDecrease: () => void;
 }
 
 const TicketCard: React.FC<TicketCardProps> = ({
-  type,
-  rate,
-  date,
-  time,
-  onBuyForAnother,
-  isSelected,
-  onSelect,
+	type,
+	rate,
+	date,
+	time,
+	onBuyForAnother,
+	ticketId,
+	isSelected,
+	onSelect,
+	quantityForOthers,
+	onIncrease,
+	onDecrease,
 }) => {
-  const navigation = useNavigation();
-  const [isPressed, setIsPressed] = useState(false);
+	const navigation = useNavigation();
 
-  useEffect(() => {
-    navigation.setOptions({ tabBarVisible: false });
-  }, []);
+	useEffect(() => {
+		navigation.setOptions({ tabBarVisible: false });
+	}, []);
 
-  return (
-			<Pressable
-				style={[styles.container, isSelected && styles.containerPressed]}
-				onPress={onSelect}
-			>
-				<View style={styles.card}>
-					{/* Ticket Type */}
-					<View style={styles.ticketType}>
-						<Text style={styles.ticketTypeText}>{type}</Text>
-					</View>
+	return (
+		<Pressable
+			style={[styles.container, isSelected && styles.containerPressed]}
+			onPress={onSelect}
+		>
+			<Image
+				source={require("@/assets/images/ticketPatterns.png")}
+				style={styles.backgroundImage}
+				resizeMode="contain"
+			/>
+			<View style={styles.card}>
+				{/* Ticket Type */}
+				<View style={styles.ticketType}>
+					<Text style={styles.ticketTypeText}>{type}</Text>
+				</View>
 
-					{/* Rate Section */}
-					<View style={styles.rateSection}>
-						<View style={styles.rateLabel}>
-							<Text style={styles.rateLabelText}>Rate</Text>
-						</View>
-						<View style={styles.rateAmount}>
-							<Text style={styles.rateAmountText}>{rate} / Person</Text>
-						</View>
-					</View>
+				{/* Rate Section */}
+				<View style={styles.rateSection}>
+					<Text style={styles.rateAmountText}>{Number(rate).toFixed(0)} Birr</Text>
+					<Text style={styles.rateLabelText}>per person</Text>
+				</View>
 
-					{/* Ticket Details */}
-					<View style={styles.ticketDetails}>
-						<View style={styles.detailColumn}>
-							<View style={styles.detailLabel}>
-								<Text style={styles.detailLabelText}>Date</Text>
-							</View>
-							<View style={styles.detailValue}>
-								<Text style={styles.detailValueText}>{date}</Text>
-							</View>
-						</View>
-
-						<View style={styles.timeColumn}>
-							<View style={styles.detailLabel}>
-								<Text style={styles.detailLabelText}>Time</Text>
-							</View>
-							<View style={styles.detailValue}>
-								<Text style={styles.detailValueText}>{time}</Text>
-							</View>
-						</View>
-					</View>
-
-					{/* Buy for Another Button */}
-					<TouchableOpacity
-						style={styles.buyAnother}
-						onPress={() => onBuyForAnother(type)}
-					>
-						<Text style={styles.buyAnotherText}>Buy for another</Text>
+				{/* Action Buttons */}
+				<View
+					style={{
+						flex: 1,
+						flexDirection: "column",
+						justifyContent: "center",
+						alignItems: "center",
+						width: "100%",
+					}}
+				>
+					<TouchableOpacity style={styles.selectTicket} onPress={onSelect}>
+						<Text style={styles.selectTicketText}>
+							{isSelected ? "Unselect Ticket" : "Select Ticket"}
+						</Text>
 					</TouchableOpacity>
 
-					{/* Avatar and "You" Text */}
-					{isSelected && (
-						<View style={styles.avatarContainer}>
-							{/* <View style={styles.avatar}>
-              <Text style={styles.avatarInitial}>Y</Text>
-            </View> */}
-							<Text style={styles.avatarText}>You</Text>
-						</View>
-					)}
+					{/* Buy for Another Button */}
+					<View
+						style={{
+							flexDirection: "row",
+							justifyContent: "space-between",
+							width: "100%",
+							marginTop: 4,
+						}}
+					>
+						<TouchableOpacity
+							style={[styles.buyAnother, { flex: 1,}]}
+							onPress={() => onBuyForAnother(ticketId)}
+						>
+							<Text style={styles.buyAnotherText}>Buy for another</Text>
+						</TouchableOpacity>
+						{quantityForOthers > 0 && (
+							<TouchableOpacity
+								style={[styles.buyAnother, { flex: 1, marginLeft: 16 }]}
+								onPress={onDecrease}
+							>
+								<Text style={styles.removeText}>Remove</Text>
+							</TouchableOpacity>
+						)}
+					</View>
 				</View>
-			</Pressable>
-		);
+
+				{/* Avatar and "You" Text */}
+				{(isSelected || quantityForOthers > 0) && (
+					<View style={styles.avatarContainer}>
+						<Text style={styles.avatarText}>
+							{isSelected ? "You" : ""}{" "}
+							{quantityForOthers > 0 ? `+ ${quantityForOthers}` : ""}
+						</Text>
+					</View>
+				)}
+			</View>
+		</Pressable>
+	);
 };
 
 const styles = StyleSheet.create({
@@ -105,9 +126,11 @@ const styles = StyleSheet.create({
 		borderRadius: 16,
 		borderWidth: 0,
 		borderColor: "white",
-		padding: 4,
+		padding: 6,
 		marginBottom: 16,
 		backgroundColor: "transparent",
+		position: "relative",
+		overflow: "hidden",
 	},
 	containerPressed: {
 		borderWidth: 2,
@@ -115,88 +138,70 @@ const styles = StyleSheet.create({
 	},
 	card: {
 		width: "100%",
-		backgroundColor: "white",
-		borderRadius: 12,
 		padding: 16,
-		overflow: "hidden",
+		borderRadius: 12,
 		borderColor: "#E5E7EB",
 		borderWidth: 2,
+		display: "flex",
+		flexDirection: "column",
+		gap: 60,
+		backgroundColor: "white",
 	},
 	ticketType: {
-		marginBottom: 12,
+		alignItems: "center",
 	},
 	ticketTypeText: {
-		fontSize: 18,
+		textAlign: "center",
+		fontSize: 24,
 		fontWeight: "600",
-		fontFamily: "Poppins-SemiBold",
-		color: "#333",
+		fontFamily: "PoppinsBold",
 	},
 	rateSection: {
-		flexDirection: "row",
-		justifyContent: "space-between",
+		justifyContent: "center",
 		alignItems: "center",
-		marginBottom: 16,
-		paddingBottom: 16,
-		borderBottomWidth: 1,
-		borderBottomColor: "#E5E7EB", // gray-200
 	},
-	rateLabel: {},
+	rateAmountText: {
+		fontSize: 32,
+		fontWeight: "bold",
+		color: "#111827",
+		fontFamily: "Poppins-Medium",
+	},
 	rateLabelText: {
 		fontSize: 14,
-		color: "#6B7280", // gray-500
+		color: "lightGray",
 		fontFamily: "Poppins-Regular",
-	},
-	rateAmount: {},
-	rateAmountText: {
-		fontSize: 16,
-		fontWeight: "500",
-		color: "#111827", // gray-900
-		fontFamily: "Poppins-Medium",
-	},
-	ticketDetails: {
-		flexDirection: "row",
-		justifyContent: "space-between",
-		marginBottom: 16,
-	},
-	detailColumn: {
-		flex: 1,
-	},
-	detailLabel: {
-		marginBottom: 4,
-	},
-	detailLabelText: {
-		fontSize: 14,
-		color: "#6B7280", // gray-500
-		fontFamily: "Poppins-Regular",
-	},
-	timeColumn: {
-    flex: 1,
-    flexDirection: "column",
-    alignItems: "flex-end",
-	},
-	timeLabel: {
-		marginBottom: 4,
-	},
-	timeLabelText: {
-		fontSize: 14,
-		color: "#6B7280",
-		fontFamily: "Poppins-Regular",
-	},
-	detailValue: {},
-	detailValueText: {
-		fontSize: 15,
-		fontWeight: "500",
-		color: "#111827", // gray-900
-		fontFamily: "Poppins-Medium",
+		textAlign: "center",
 	},
 	buyAnother: {
-		alignSelf: "flex-start",
+		// Base styles for buttons
 	},
 	buyAnotherText: {
 		fontSize: 14,
-		color: "#3B82F6", // blue-500
+		color: "#3B82F6",
 		fontWeight: "500",
 		fontFamily: "Poppins-Medium",
+		textAlign: "center",
+	},
+	removeText: {
+		fontSize: 14,
+		color: "red",
+		fontWeight: "500",
+		fontFamily: "Poppins-Medium",
+		textAlign: "center",
+	},
+	selectTicketText: {
+		fontSize: 16,
+		color: "white",
+		fontWeight: "500",
+		fontFamily: "Poppins-Medium",
+		textAlign: "center",
+	},
+	selectTicket: {
+		backgroundColor: "#3B82F6",
+		padding: 15,
+		width: "100%",
+		borderRadius: 5,
+		marginBottom: 15,
 	},
 	avatarContainer: {
 		position: "absolute",
@@ -204,24 +209,18 @@ const styles = StyleSheet.create({
 		right: 8,
 		alignItems: "center",
 	},
-	avatar: {
-		width: 40,
-		height: 40,
-		borderRadius: 20,
-		backgroundColor: "#3B82F6",
-		justifyContent: "center",
-		alignItems: "center",
-		marginBottom: 4,
-	},
-	avatarInitial: {
-		color: "white",
-		fontSize: 16,
-		fontWeight: "bold",
-	},
 	avatarText: {
 		fontSize: 12,
 		fontWeight: "bold",
 		color: "#3B82F6",
+	},
+	backgroundImage: {
+		position: "absolute",
+		top: 0,
+		left: 0,
+		right: 0,
+		bottom: 0,
+		borderRadius: 12,
 	},
 });
 

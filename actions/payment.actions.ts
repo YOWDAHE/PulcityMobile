@@ -1,5 +1,7 @@
 import axios from "axios";
 import { PaymentResponse, PaymentResponseSchema } from "@/models/payment.model";
+import axiosInstance from "@/utils/axiosInstance";
+import { TicketPayload } from "@/models/ticket.model";
 
 const BASE_URL = "https://www.mindahun.pro.et/api/v1";
 
@@ -10,21 +12,11 @@ const BASE_URL = "https://www.mindahun.pro.et/api/v1";
  * @returns Promise resolving to the payment initialization response
  * @throws Error if the API request fails or the response is invalid
  */
-export const paymentInit = async (ticketId: number, accessToken: string): Promise<PaymentResponse> => {
+export const paymentInit = async (ticketPayload: TicketPayload): Promise<PaymentResponse> => {
     try {
-        if (!accessToken) {
-            throw new Error("Access token is missing. Please log in again.");
-        }
-
-        const response = await axios.post(
-            `${BASE_URL}/payment/initiate/`,
-            { ticket_id: ticketId },
-            {
-                headers: {
-                    Authorization: `Bearer ${accessToken}`,
-                    "Content-Type": "application/json",
-                },
-            }
+        const response = await axiosInstance.post(
+            `/payment/initiate/`,
+            ticketPayload,
         );
 
         // Validate the response using the PaymentResponseSchema

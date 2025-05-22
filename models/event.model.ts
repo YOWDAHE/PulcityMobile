@@ -1,6 +1,12 @@
 import { z } from "zod";
 import { OrganizerSchema, SocialMediaLinksSchema } from "./organizer.model";
+import { RatingSchema } from "./rating.model";
 
+// Rating can be either a number, null, or a full rating object
+const RatingFieldSchema = z.union([
+    z.number().nullable(),
+    RatingSchema,
+]);
 
 export const EventSchema = z.object({
     id: z.number(),
@@ -17,9 +23,17 @@ export const EventSchema = z.object({
     longitude: z.number().min(-180).max(180, { message: "Longitude must be between -180 and 180" }),
     cover_image_url: z.array(z.string().url({ message: "Invalid URL format" })),
     is_public: z.boolean(),
+    onsite_payement: z.boolean().optional(),
     likes_count: z.number().int().nonnegative({ message: "Likes count must be a non-negative integer" }).optional(),
     liked: z.boolean().optional(),
-    bookmarks_count: z.number().int().nonnegative({ message: "Likes count must be a non-negative integer" }).optional(),
+    rated: z.boolean().optional(),
+    average_rating: z.number().nullable().optional(),
+    rating_count: z.number().int().nonnegative().optional(),
+    rating: RatingFieldSchema.optional(),
+    attendee_count: z.number().int().nonnegative().optional(),
+    has_attended: z.boolean().optional(),
+    has_ticket: z.boolean().optional(),
+    bookmarks_count: z.number().int().nonnegative({ message: "Bookmarks count must be a non-negative integer" }).optional(),
     bookmarked: z.boolean().optional(),
     hashtags: z.array(z.object({name: z.string()})),
     created_at: z.string().datetime({ message: "Invalid ISO 8601 datetime format" }),

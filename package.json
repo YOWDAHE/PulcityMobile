@@ -68,7 +68,8 @@
     "yup": "^1.6.1",
     "zod": "^3.24.3",
     "react-native-svg": "15.8.0",
-    "react-native-pager-view": "6.5.1"
+    "react-native-pager-view": "6.5.1",
+    "expo-location": "~18.0.10"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

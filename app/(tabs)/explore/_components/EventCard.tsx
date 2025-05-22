@@ -1,54 +1,66 @@
 import {
-  ImageBackground,
-  TouchableOpacity,
-  StyleSheet,
-  Text,
-  View,
-  Image,
+	ImageBackground,
+	TouchableOpacity,
+	StyleSheet,
+	Text,
+	View,
+	Image,
 } from "react-native";
 import React from "react";
 import { Ionicons } from "@expo/vector-icons";
 import AttendeeAvatar from "./AttendeeAvatar";
 import { Colors } from "@/constants/Colors";
+import { Event } from "@/models/event.model";
+import { router } from "expo-router";
 
+const EventCard = ({ event }: { event: Event }) => {
+	const mockImage = `https://picsum.photos/seed/${Math.random()}/200/300`;
+	return (
+		<View style={styles.container}>
+			<View style={styles.imageContainer}>
+				<Image
+					source={{ uri: event.cover_image_url[0] }}
+					style={styles.coverImage}
+					accessibilityLabel="Concert venue with lights"
+				/>
+			</View>
 
-const EventCard = () => {
-  const mockImage = `https://picsum.photos/seed/${Math.random()}/200/300`;
-  return (
-    <View style={styles.container}>
-      <View style={styles.imageContainer}>
-        <Image
-          source={{uri: mockImage}}
-          style={styles.coverImage}
-          accessibilityLabel="Concert venue with lights"
-        />
-      </View>
-
-      <View style={styles.contentContainer}>
-        <View style={styles.infoContainer}>
-          <Text style={styles.title}>Tamino Tour 2024</Text>
-          <View style={styles.detailsContainer}>
-            <View style={styles.detailItem}>
-              <Ionicons name="calendar" />
-              <Text style={styles.detailText}>Dec 16, 2024</Text>
-            </View>
-            <View style={styles.detailItem}>
-              <Ionicons name="time-outline" />
-              <Text style={styles.detailText}>8:00 PM</Text>
-            </View>
-          </View>
-        </View>
-      </View>
-      <View style={styles.attendeesContainer}>
-        <AttendeeAvatar />
-        <Text style={styles.attendeesText}> +250 Going</Text>
-      </View>
-      <TouchableOpacity style={styles.button}>
-        <Text style={styles.buttonText}>Buy Tickets</Text>
-        <Ionicons name="chevron-forward" color="white" />
-      </TouchableOpacity>
-    </View>
-  );
+			<View style={styles.contentContainer}>
+				<View style={styles.infoContainer}>
+					<Text style={styles.title}>{event.title}</Text>
+					<View style={styles.detailsContainer}>
+						<View style={styles.detailItem}>
+							<Ionicons name="calendar" />
+							<Text style={styles.detailText}>
+								{new Date(event.start_date).toLocaleDateString("en-US", {
+									month: "short",
+									day: "numeric",
+									year: "numeric",
+								})}
+							</Text>
+						</View>
+						<View style={styles.detailItem}>
+							<Ionicons name="time-outline" />
+							<Text style={styles.detailText}>
+								{new Date(event.start_time).toLocaleTimeString([], {
+									hour: "2-digit",
+									minute: "2-digit",
+								})}
+							</Text>
+						</View>
+					</View>
+				</View>
+			</View>
+			<View style={styles.attendeesContainer}>
+				{/* <AttendeeAvatar /> */}
+				<Text style={styles.attendeesText}>{ event.attendee_count } attendee</Text>
+			</View>
+			<TouchableOpacity style={styles.button} onPress={() => router.push(`/event/${event.id}`)}>
+				<Text style={styles.buttonText}>Buy Tickets</Text>
+				<Ionicons name="chevron-forward" color="white" />
+			</TouchableOpacity>
+		</View>
+	);
 };
 
 export default EventCard;
@@ -65,11 +77,14 @@ const styles = StyleSheet.create({
 		padding: 5,
 		borderRadius: 10,
 		// borderWidth: 0.5,
-    // borderColor: "rgba(0,0,0,0.4)",
-    backgroundColor: "white",
+		// borderColor: "rgba(0,0,0,0.4)",
+		backgroundColor: "white",
 		position: "relative",
 		gap: 10,
 		fontFamily: "Poppins",
+		display: "flex",
+		flexDirection: "column",
+		justifyContent: "space-between",
 	},
 	imageBackground: {
 		flex: 1,
@@ -81,7 +96,7 @@ const styles = StyleSheet.create({
 	},
 	imageContainer: {
 		width: "100%",
-		height: 124,
+		height: 224,
 		borderRadius: 6,
 		overflow: "hidden",
 	},
@@ -145,9 +160,9 @@ const styles = StyleSheet.create({
 		gap: 6,
 		paddingHorizontal: 5,
 		paddingRight: 20,
-		paddingVertical: 5,
+		paddingVertical: 2,
 		borderRadius: 6,
-		// paddingRight: 20,
+		paddingLeft: 8,
 		// backgroundColor: "rgba(0,0,0,0.4)",
 	},
 	attendeesText: {

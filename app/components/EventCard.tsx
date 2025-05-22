@@ -19,6 +19,7 @@ import { bookmarkEvent, likeEvent } from "@/actions/event.actions";
 import { TiptapRenderer } from "@/components/htmlRenderer";
 import { router } from "expo-router";
 import { ResizeMode, Video } from "expo-av";
+import { navigateToHashtagSearch } from "@/app/utils/hashtagUtils";
 
 interface EventCardProps {
 	event: Event;
@@ -32,6 +33,8 @@ const EventCard = ({ event, showDots = true }: EventCardProps) => {
 	);
 	const [isLiked, setIsLiked] = useState(event.liked);
 	const [loading, setLoading] = useState(false);
+
+	const isEventPassed = new Date(event.start_date) < new Date();
 
 	const handleFollow = async () => {
 		try {
@@ -94,6 +97,18 @@ const EventCard = ({ event, showDots = true }: EventCardProps) => {
 		if (url.includes("/image/")) return "image";
 		if (url.includes("/video/")) return "video";
 		return "other";
+	};
+
+	const getEventRating = (event: Event): number | null => {
+		if (!event.rating) return null;
+		
+		if (typeof event.rating === 'number') return event.rating;
+		
+		if (typeof event.rating === 'object' && 'value' in event.rating) {
+			return event.rating.value;
+		}
+		
+		return null;
 	};
 
 	return (
@@ -188,7 +203,7 @@ const EventCard = ({ event, showDots = true }: EventCardProps) => {
 									{type === "image" && (
 										<Image source={{ uri: url }} style={styles.eventImage} />
 									)}
-									{/* {type === "video" && (
+									{type === "video" && (
 										<Video
 											source={{ uri: url }}
 											rate={1.0}
@@ -200,7 +215,7 @@ const EventCard = ({ event, showDots = true }: EventCardProps) => {
 											useNativeControls={false}
 											style={styles.eventImage}
 										/>
-									)} */}
+									)}
 									{event.cover_image_url.length > 1 && (
 										<View
 											style={{
@@ -278,6 +293,15 @@ const EventCard = ({ event, showDots = true }: EventCardProps) => {
 								<Text style={styles.statText}>{event.bookmarks_count}</Text>
 							)}
 					</TouchableOpacity>
+
+					{event.rated && (
+						<View style={styles.statItem}>
+							<Ionicons name="star" size={20} color="#FFBB0A" />
+							<Text style={styles.statText}>
+								{getEventRating(event)}
+							</Text>
+						</View>
+					)}
 				</View>
 
 				<View
@@ -309,16 +333,43 @@ const EventCard = ({ event, showDots = true }: EventCardProps) => {
 					</Pressable>
 				</View>
 
-				<TouchableOpacity style={styles.ticketButton}>
-					<Text style={styles.ticketButtonText}>Get Your Tickets here</Text>
-					<Ionicons name="chevron-forward" />
-				</TouchableOpacity>
+				{/* Only show ticket button for future events */}
+				{!isEventPassed && (
+					<TouchableOpacity 
+						style={[
+							styles.ticketButton,
+							event.has_attended && styles.rateButton
+						]}
+						onPress={() => 
+							event.has_attended 
+								? router.push({
+									pathname: "/(pages)/rate/[id]/index",
+									params: { id: event.id }
+								}) 
+								: router.push(`/ticket/${event.id}`)
+						}
+					>
+						<Text style={[
+							styles.ticketButtonText,
+							event.has_attended && styles.rateButtonText
+						]}>
+							{event.has_attended ? "Rate this event" : "Get Your Tickets here"}
+						</Text>
+						<Ionicons 
+							name="chevron-forward" 
+							color={event.has_attended ? "#000000" : "#FFFFFF"} 
+						/>
+					</TouchableOpacity>
+				)}
 
 				{event.hashtags && (
-					<View style={{ flexDirection: "row", gap: 6 }}>
+					<View style={{ flexDirection: "row", gap: 6, flexWrap: "wrap" }}>
 						{event.hashtags.map((el) => {
 							return (
-								<TouchableOpacity key={el.name}>
+								<TouchableOpacity 
+									key={el.name}
+									onPress={() => navigateToHashtagSearch(el.name)}
+								>
 									<Text style={styles.hashtags}>#{String(el.name || "")}</Text>
 								</TouchableOpacity>
 							);
@@ -465,5 +516,12 @@ const styles = StyleSheet.create({
 		flexDirection: "row",
 		alignItems: "center",
 		// gap: 0,
+	},
+	rateButton: {
+		backgroundColor: "#FFBB0A",
+		borderColor: "#FFBB0A",
+	},
+	rateButtonText: {
+		color: "#000000",
 	},
 });

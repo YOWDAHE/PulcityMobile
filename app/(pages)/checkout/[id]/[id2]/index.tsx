@@ -14,7 +14,7 @@ import HeaderComponent from "@/components/HeaderComponent";
 import { StatusBar } from "expo-status-bar";
 import { getBoughtTicketsByEventId } from "@/actions/ticket.actions";
 import { useAuth } from "@/app/hooks/useAuth";
-import { Ticket } from "@/models/ticket.model";
+import { Ticket, UserTicket } from "@/models/ticket.model";
 import { Event } from "@/models/event.model";
 import { getEventById } from "@/actions/event.actions";
 
@@ -22,9 +22,8 @@ const CheckoutPage = () => {
 	const router = useRouter();
 	const { id, id2 } = useLocalSearchParams();
 	console.log("ID:", id, "ID2:", id2);
-	const { tokens } = useAuth();
 
-	const [tickets, setTickets] = useState<Ticket[]>([]);
+	const [tickets, setTickets] = useState<UserTicket[]>([]);
 	const [event, setEvent] = useState<Event>();
 	const [isLoading, setIsLoading] = useState(true);
 	const [error, setError] = useState("");
@@ -32,25 +31,15 @@ const CheckoutPage = () => {
 	useEffect(() => {
 		const fetchTickets = async () => {
 			try {
-				if (!tokens?.access) {
-					console.log("Access token is missing in the ticket page");
-					return;
-				}
-
 				if (!id) {
 					throw new Error("Event ID is missing in the route parameters.");
 				}
 
-				const fetchedTickets = await getBoughtTicketsByEventId(
-					Number(id),
-					tokens.access
-				);
-				
+				const fetchedTickets = await getBoughtTicketsByEventId(Number(id));
+
 				if (fetchedTickets == undefined) return;
 				if (fetchedTickets.length > 0) {
-					const event: Event = await getEventById(
-						Number(fetchedTickets[0].event),
-					);
+					const event: Event = await getEventById(Number(fetchedTickets[0].ticket.event));
 					setEvent(event);
 				}
 				setTickets(fetchedTickets);
@@ -63,10 +52,8 @@ const CheckoutPage = () => {
 			}
 		};
 
-		if (tokens?.access) {
-			fetchTickets();
-		}
-	}, [tokens, id]);
+		fetchTickets();
+	}, [id]);
 
 	if (isLoading) {
 		return (
@@ -107,13 +94,13 @@ const CheckoutPage = () => {
 								<View>
 									<Text style={styles.label}>Date</Text>
 									<Text style={styles.value}>
-										{new Date(ticket.valid_until).toLocaleDateString()}
+										{new Date(ticket.ticket.valid_until).toLocaleDateString()}
 									</Text>
 								</View>
 								<View>
 									<Text style={styles.label}>Time</Text>
 									<Text style={styles.value}>
-										{new Date(ticket.valid_until).toLocaleTimeString([], {
+										{new Date(ticket.ticket.valid_until).toLocaleTimeString([], {
 											hour: "2-digit",
 											minute: "2-digit",
 										})}
@@ -123,7 +110,7 @@ const CheckoutPage = () => {
 							<View style={styles.row}>
 								<View>
 									<Text style={styles.label}>Check in type</Text>
-									<Text style={styles.value}>{ticket.name}</Text>
+									<Text style={styles.value}>{ticket.ticket.name}</Text>
 								</View>
 								<View>
 									<Text style={styles.label}>ID number</Text>
@@ -132,7 +119,7 @@ const CheckoutPage = () => {
 							</View>
 							<View>
 								<Text style={styles.label}>Place</Text>
-								<Text style={styles.value}>{event?.location}</Text>
+								<Text style={styles.value}>{event?.location ? JSON.parse(event.location).name : ''}</Text>
 							</View>
 						</View>
 
@@ -190,7 +177,8 @@ const CheckoutPage = () => {
 					}}
 					onPress={() => router.push(`/(tabs)/home`)}
 				>
-					<Text>Done</Text></TouchableOpacity>
+					<Text>Done</Text>
+				</TouchableOpacity>
 			</ScrollView>
 		</View>
 	);

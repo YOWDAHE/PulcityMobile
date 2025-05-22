@@ -69,6 +69,7 @@ const Page = () => {
 
 		const uuid = String(authUser.id);
 		console.log(`User UUID: ${uuid}`);
+		console.log("Initializing PubNub chat for channel:", channel);
 		// setCurrentUser(authUser);
 		setUserMap((prev) => ({ ...prev, [uuid]: authUser }));
 
@@ -93,45 +94,50 @@ const Page = () => {
 		pubnub.subscribe({ channels: [channel], withPresence: true });
 
 		// Fetch message history
+		console.log("Fetching message history for channel:", channel);
 		pubnub.fetchMessages(
 			{
 				channels: [channel],
 				count: 50,
 			},
 			(status, response) => {
+				console.log("PubNub fetchMessages status:", status);
+				console.log("PubNub fetchMessages response:", response?.channels);
+				
 				if (response?.channels[channel] && !initialHistoryLoaded) {
 					const historyMessages: IMessage[] = response.channels[channel].map(
 						(message) => {
-							console.log("History message:", message.uuid, authUser?.id);
+							console.log("Processing history message:", message);
+							
+							// Get username from message data or use unknown
+							const userName = 
+								message.message.user?.name || 
+								(message.uuid && userMap[message.uuid]?.username) || 
+								"Unknown User";
+							
 							return {
 								_id: message.timetoken.toString(),
 								text: message.message.text,
 								createdAt: new Date(Number(message.timetoken) / 10000),
 								user: {
 									_id: message.uuid || "unknown",
-									name: message.message.user.name || "Unknown User",
+									name: userName,
 								},
 							};
 						}
 					);
 
-					// historyMessages.push({
-					// 	_id: "0",
-					// 	text: "Hello there",
-					// 	createdAt: new Date(),
-					// 	user: {
-					// 		_id: "0",
-					// 		name: "Betty",
-					// 	},
-					// });
-					// setMessages((prev) => GiftedChat.append(prev, historyMessages));
-					setMessages(historyMessages.reverse()); // GiftedChat expects reverse order
+					console.log(`Setting ${historyMessages.length} messages in state`);
+					setMessages(historyMessages.reverse());
 					setInitialHistoryLoaded(true);
+				} else {
+					console.log("No messages found in history or already loaded");
 				}
 			}
 		);
 
 		return () => {
+			console.log("Cleaning up PubNub subscription");
 			pubnub.unsubscribeAll();
 			pubnub.removeListener(listener);
 		};
@@ -139,10 +145,12 @@ const Page = () => {
 
 	const handleMessage = useCallback(
 		(messageEvent: MessageEvent) => {
+			console.log("Received message event:", messageEvent);
 			const currentUserID = String(authUser?.id);
 			if (messageEvent.channel === channel) {
 				// Ignore messages sent by the current user
 				if (messageEvent.publisher == currentUserID) {
+					console.log("Ignoring message from current user");
 					return;
 				}
 
@@ -151,19 +159,30 @@ const Page = () => {
 						(m) => m._id === messageEvent.timetoken.toString()
 					);
 					if (!messageExists) {
+						console.log("Adding new message to state");
+						
+						// Get user info from the message or from our userMap
+						const userName = 
+							messageEvent.message.user?.name || 
+							userMap[messageEvent.publisher]?.username || 
+							"Unknown User";
+						
 						const newMessage: IMessage = {
 							_id: messageEvent.timetoken.toString(),
 							text: messageEvent.message.text,
 							createdAt: new Date(Number(messageEvent.timetoken) / 10000),
 							user: {
 								_id: messageEvent.publisher,
-								name: userMap[messageEvent.publisher]?.username,
+								name: userName,
 							},
 						};
 						return GiftedChat.append(prev, [newMessage]);
 					}
+					console.log("Message already exists in state");
 					return prev;
 				});
+			} else {
+				console.log("Message for different channel:", messageEvent.channel);
 			}
 		},
 		[channel, authUser, userMap]
@@ -215,7 +234,7 @@ const Page = () => {
 
 			// Publish the message to PubNub
 			newMessages.forEach((message) => {
-				console.log("Sending message:", authUser.username);
+				console.log("Sending message:", message.text);
 				pubnub.publish(
 					{
 						channel,
@@ -240,7 +259,10 @@ const Page = () => {
 			});
 
 			// Append the message locally
-			setMessages((prevMessages) => GiftedChat.append(prevMessages, newMessages));
+			setMessages((prevMessages) => {
+				console.log("Updating local messages after send");
+				return GiftedChat.append(prevMessages, newMessages);
+			});
 		},
 		[authUser, pubnub, channel]
 	);
@@ -260,7 +282,11 @@ const Page = () => {
 		return (
 			<InputToolbar
 				{...props}
-				containerStyle={{ backgroundColor: "White" }}
+				containerStyle={{
+					backgroundColor: "white",
+					borderTopColor: "#E8E8E8",
+					borderTopWidth: 1,
+				}}
 				renderActions={() => (
 					<View
 						style={{
@@ -268,6 +294,8 @@ const Page = () => {
 							justifyContent: "center",
 							alignItems: "center",
 							left: 5,
+							backgroundColor: "white",
+							paddingHorizontal: 10,
 						}}
 					>
 						<Ionicons
@@ -325,37 +353,45 @@ const Page = () => {
 				renderAvatar={null}
 				maxComposerHeight={100}
 				textInputProps={styles.composer}
+				showUserAvatar={false}
+				alwaysShowSend={true}
+				showAvatarForEveryMessage={false}
+				renderUsernameOnMessage={true}
 				renderBubble={(props) => {
 					const isCurrentUser = props.currentMessage.user._id == authUser?.id;
 					return (
 						<View>
-							{!isCurrentUser && (
-								<View>
-									<Text
-										style={{
-											color: "white",
-											fontSize: 12,
-											marginBottom: 2,
-											marginLeft: 10,
-										}}
-									>
-										{props.currentMessage.user.name}
-									</Text>
-								</View>
-							)}
+							{/* {!isCurrentUser && (
+								<Text
+									style={{
+										color: '#3B82F6',
+										fontSize: 12,
+										fontWeight: '600',
+										marginBottom: 2,
+										marginLeft: 10,
+									}}
+								>
+									{props.currentMessage.user.name}
+								</Text>
+							)} */}
 							<Bubble
 								{...props}
 								textStyle={{
 									right: {
 										color: "white",
 									},
+									left: {
+										color: "#333",
+									}
 								}}
 								wrapperStyle={{
 									left: {
 										backgroundColor: "#fff",
+										marginVertical: 3
 									},
 									right: {
 										backgroundColor: Colors.gray,
+										marginVertical: 3
 									},
 								}}
 							/>
@@ -371,20 +407,21 @@ const Page = () => {
 							justifyContent: "center",
 							gap: 14,
 							paddingHorizontal: 14,
-							backgroundColor: 'white'
+							backgroundColor: 'white',
+							paddingRight: 4,
 						}}
 					>
-						{text === "" && (
+						{!props.text || props.text.trim().length === 0 ? (
 							<>
 								<Ionicons name="camera-outline" color={Colors.primary} size={28} />
 								<Ionicons name="mic-outline" color={Colors.primary} size={28} />
 							</>
-						)}
-						{text !== "" && (
+						) : (
 							<Send
 								{...props}
 								containerStyle={{
 									justifyContent: "center",
+									backgroundColor: 'white',
 								}}
 							>
 								<Ionicons name="send" color={Colors.primary} size={28} />
@@ -415,13 +452,11 @@ const Page = () => {
 const styles = StyleSheet.create({
 	composer: {
 		backgroundColor: "white",
-		// borderRadius: 18,
-		// borderWidth: 1,
-		// borderColor: Colors.lightGray,
 		paddingHorizontal: 10,
-		// paddingTop: 8,
+		paddingBottom: 4,
 		fontSize: 16,
 		marginVertical: 4,
+		minHeight: 40,
 	},
 });
 

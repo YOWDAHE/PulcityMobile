@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -6,16 +6,21 @@ import {
   TouchableOpacity,
   StyleSheet,
   Modal,
+  Platform,
+  ActivityIndicator,
 } from "react-native";
 import { Ticket, TicketType } from "../constants/types";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import { getEventById } from "@/actions/event.actions";
+import { Event } from "@/models/event.model";
 
 interface TicketCardProps {
   ticket: Ticket;
 }
 const ticketTypeConfig: Record<
-  TicketType,
+  string,
   {
     color: string;
     icon: React.ComponentProps<typeof Ionicons>["name"];
@@ -49,19 +54,57 @@ const ticketTypeConfig: Record<
   },
 };
 
+const defaultTypeConfig = {
+  color: "#3B82F6",
+  icon: "ticket-outline" as React.ComponentProps<typeof Ionicons>["name"],
+  bgColor: "#EFF6FF",
+};
+
 const getTicketTypeConfig = (type: string) => {
-  return ticketTypeConfig[type as TicketType] || ticketTypeConfig.Standard;
+  return ticketTypeConfig[type] || defaultTypeConfig;
 };
 
 const TicketCard: React.FC<TicketCardProps> = ({ ticket }) => {
-  const typeConfig = ticketTypeConfig[ticket.type] || ticketTypeConfig.Standard;
+  const typeConfig = getTicketTypeConfig(ticket.type);
 
   const router = useRouter();
-  const [modalVisible, setModalVisible] = React.useState(false);
-  const [selectedAvatar, setSelectedAvatar] = React.useState<{
+  const [modalVisible, setModalVisible] = useState(false);
+  const [selectedAvatar, setSelectedAvatar] = useState<{
     name: string;
     avatar: any;
   } | null>(null);
+  
+  // Add state for event data
+  const [eventData, setEventData] = useState<Event | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch event data when component mounts
+  useEffect(() => {
+    const fetchEventData = async () => {
+      if (!ticket.eventId) return;
+      
+      try {
+        setIsLoading(true);
+        setError(null);
+        const eventId = parseInt(ticket.eventId);
+        if (isNaN(eventId)) {
+          setError("Invalid event ID");
+          return;
+        }
+        
+        const event = await getEventById(eventId);
+        setEventData(event);
+      } catch (err) {
+        console.error("Error fetching event details:", err);
+        setError("Could not load event details");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchEventData();
+  }, [ticket.eventId]);
 
   const formatNames = () => {
     if (ticket.name.length === 1) return ticket.name[0];
@@ -77,8 +120,128 @@ const TicketCard: React.FC<TicketCardProps> = ({ ticket }) => {
     setModalVisible(true);
   };
 
+  const handleViewTicket = () => {
+    router.push(`/checkout/${eventData?.id}/${eventData?.id}`);
+  };
+
+  // Parse location
+  const getLocationName = () => {
+    if (!eventData || !eventData.location) return ticket.place || "Venue";
+    
+    try {
+      if (typeof eventData.location === 'string') {
+        const parsedLocation = JSON.parse(eventData.location);
+        return parsedLocation.name || ticket.place || "Venue";
+      }
+      // Use type assertion to handle the location object
+      const locationObj = eventData.location as { name?: string };
+      return locationObj.name || ticket.place || "Venue";
+    } catch (error) {
+      return ticket.place || "Venue";
+    }
+  };
+
   return (
-    <View style={styles.card}>
+    <TouchableOpacity 
+      style={styles.container} 
+      onPress={handleViewTicket}
+      activeOpacity={0.9}
+    >
+      <LinearGradient
+        colors={['#3B82F6', '#1E40AF']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.gradientHeader}
+      >
+        <View style={styles.headerContent}>
+          <View>
+            <Text style={styles.ticketType}>{ticket.type}</Text>
+            <Text style={styles.ticketId}>#{ticket.idNumber}</Text>
+          </View>
+          <View style={styles.priceContainer}>
+            <Text style={styles.priceLabel}>Price</Text>
+            <Text style={styles.priceValue}>${ticket.price}</Text>
+          </View>
+        </View>
+      </LinearGradient>
+
+      <View style={styles.content}>
+        {/* Event title */}
+        {(eventData || isLoading) && (
+          <View style={styles.eventTitleContainer}>
+            {isLoading ? (
+              <ActivityIndicator size="small" color="#3B82F6" />
+            ) : error ? (
+              <Text style={styles.errorText}>{error}</Text>
+            ) : (
+              <View>
+                <Text style={styles.eventTitle}>
+                  {eventData?.title || "Event Details"}
+                </Text>
+                <Text style={styles.organizerName}>
+                  {eventData?.organizer?.profile?.name || "Organizer"}
+                </Text>
+              </View>
+            )}
+          </View>
+        )}
+
+        <View style={styles.infoSection}>
+          <View style={styles.infoItem}>
+            <Ionicons name="calendar-outline" size={20} color="#6B7280" />
+            <View style={styles.infoTextContainer}>
+              <Text style={styles.infoLabel}>Date</Text>
+              <Text style={styles.infoValue}>{ticket.date}</Text>
+            </View>
+          </View>
+
+          <View style={styles.infoItem}>
+            <Ionicons name="time-outline" size={20} color="#6B7280" />
+            <View style={styles.infoTextContainer}>
+              <Text style={styles.infoLabel}>Time</Text>
+              <Text style={styles.infoValue}>{ticket.time}</Text>
+            </View>
+          </View>
+        </View>
+
+        <View style={styles.infoSection}>
+          <View style={styles.infoItem}>
+            <Ionicons name="location-outline" size={20} color="#6B7280" />
+            <View style={styles.infoTextContainer}>
+              <Text style={styles.infoLabel}>Location</Text>
+              <Text style={styles.infoValue}>{getLocationName()}</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Show event image if available */}
+        {eventData?.cover_image_url && eventData.cover_image_url.length > 0 && (
+          <View style={styles.imageContainer}>
+            <Image 
+              source={{ uri: eventData.cover_image_url[0] }}
+              style={styles.eventImage}
+              resizeMode="cover"
+            />
+          </View>
+        )}
+
+        <View style={styles.footer}>
+          <View style={styles.dotPattern}>
+            {[...Array(10)].map((_, i) => (
+              <View key={i} style={styles.dot} />
+            ))}
+          </View>
+          
+          <TouchableOpacity 
+            style={styles.viewButton}
+            onPress={handleViewTicket}
+          >
+            <Text style={styles.viewButtonText}>View Ticket Details</Text>
+            <Ionicons name="chevron-forward" size={16} color="#3B82F6" />
+          </TouchableOpacity>
+        </View>
+      </View>
+
       <Modal
         animationType="slide"
         transparent={true}
@@ -98,217 +261,176 @@ const TicketCard: React.FC<TicketCardProps> = ({ ticket }) => {
           </View>
         </View>
       </Modal>
-
-      <View
-        style={[
-          styles.ticketTypeContainer,
-          { backgroundColor: typeConfig.bgColor },
-        ]}
-      >
-        <Ionicons
-          name={typeConfig.icon}
-          size={16}
-          color={typeConfig.color}
-          style={styles.ticketTypeIcon}
-        />
-        <Text style={[styles.ticketType, { color: typeConfig.color }]}>
-          [{ticket.type} ticket]
-        </Text>
-      </View>
-      <View style={styles.avatarsContainer}>
-        {ticket.avatars.slice(0, 3).map((avatar, index) => (
-          <TouchableOpacity
-            key={index}
-            onPress={() => handleAvatarPress(index)}
-          >
-            <Image
-              source={avatar}
-              style={[styles.avatar, index > 0 ? { marginLeft: -10 } : {}]}
-            />
-          </TouchableOpacity>
-        ))}
-        {ticket.avatars.length > 3 && (
-          <View style={styles.moreAvatars}>
-            <Text style={styles.moreAvatarsText}>
-              +{ticket.avatars.length - 3}
-            </Text>
-          </View>
-        )}
-        <Text style={styles.ticketName}>{formatNames()}</Text>
-      </View>
-
-      <View style={styles.buttonsContainer}>
-        <TouchableOpacity
-          style={styles.viewDetailButton}
-          onPress={() =>
-            router.push({
-              pathname: "/(pages)/ticket/[id]",
-              params: {
-                id: ticket.id,
-                ticket: JSON.stringify(ticket),
-              },
-            })
-          }
-        >
-          <Text style={styles.viewDetailText}>View detail</Text>
-          <Ionicons name="chevron-forward" color="#457B9D" size={14} />
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.viewEventButton}
-          onPress={() =>
-            router.push({
-              pathname: "/(pages)/event/[id]",
-              params: { id: ticket.eventId },
-            })
-          }
-        >
-          <Text style={styles.viewEventText}>View Event</Text>
-          <Ionicons name="chevron-forward" color="#457B9D" size={14} />
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.dateContainer}>
-        <Text style={styles.dateText}>{ticket.date}</Text>
-      </View>
-    </View>
+    </TouchableOpacity>
   );
 };
 
 const styles = StyleSheet.create({
-  card: {
+  container: {
+    marginBottom: 20,
+    borderRadius: 16,
     backgroundColor: "#FFFFFF",
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
+    overflow: "hidden",
+    ...Platform.select({
+      ios: {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 3,
+      },
+    }),
   },
-  ticketTypeContainer: {
+  gradientHeader: {
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+  },
+  headerContent: {
     flexDirection: "row",
+    justifyContent: "space-between",
     alignItems: "center",
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    borderRadius: 20,
-    alignSelf: "flex-start",
-    marginBottom: 8,
-  },
-  ticketTypeIcon: {
-    marginRight: 6,
   },
   ticketType: {
-    fontSize: 12,
-    fontWeight: "500",
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#FFFFFF",
+    marginBottom: 4,
   },
-
-  avatarsContainer: {
+  ticketId: {
+    fontSize: 12,
+    color: "rgba(255, 255, 255, 0.8)",
+  },
+  priceContainer: {
+    alignItems: "flex-end",
+  },
+  priceLabel: {
+    fontSize: 12,
+    color: "rgba(255, 255, 255, 0.8)",
+    marginBottom: 2,
+  },
+  priceValue: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#FFFFFF",
+  },
+  content: {
+    padding: 16,
+    backgroundColor: "#FFFFFF",
+  },
+  eventTitleContainer: {
+    marginBottom: 16,
+    minHeight: 40,
+  },
+  eventTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#1F2937",
+    marginBottom: 4,
+  },
+  organizerName: {
+    fontSize: 14,
+    color: "#6B7280",
+  },
+  errorText: {
+    fontSize: 14,
+    color: "#EF4444",
+  },
+  infoSection: {
+    marginBottom: 16,
+  },
+  infoItem: {
     flexDirection: "row",
     alignItems: "center",
     marginBottom: 12,
   },
-
-  ticketName: {
+  infoTextContainer: {
+    marginLeft: 12,
+  },
+  infoLabel: {
+    fontSize: 12,
+    color: "#6B7280",
+    marginBottom: 2,
+  },
+  infoValue: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#1F2937",
+  },
+  imageContainer: {
+    marginBottom: 16,
+    borderRadius: 8,
+    overflow: "hidden",
+    height: 120,
+  },
+  eventImage: {
+    width: "100%",
+    height: "100%",
+  },
+  footer: {
+    marginTop: 8,
+  },
+  dotPattern: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 16,
+  },
+  dot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: "#E5E7EB",
+  },
+  viewButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 12,
+    backgroundColor: "#F3F4F6",
+    borderRadius: 8,
+  },
+  viewButtonText: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#111827",
-  },
-  buttonsContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 8,
-  },
-  viewDetailButton: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: 8,
-    backgroundColor: "transparent",
-    textAlign: "left",
-    marginBottom: 8,
-    paddingHorizontal: 12,
-  },
-  viewDetailText: {
     color: "#3B82F6",
-    fontSize: 12,
-    fontWeight: "500",
-  },
-  viewEventButton: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: 8,
-    backgroundColor: "transparent",
-    textAlign: "left",
-    marginBottom: 8,
-    paddingHorizontal: 12,
-  },
-  viewEventText: {
-    color: "#3B82F6",
-    fontSize: 12,
-    fontWeight: "500",
-  },
-  dateContainer: {},
-  dateText: {
-    fontSize: 12,
-    color: "#6B7280",
-  },
-
-  avatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    borderWidth: 2,
-    borderColor: "#FFFFFF",
-  },
-  moreAvatars: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: "#E5E7EB",
-    justifyContent: "center",
-    alignItems: "center",
-    marginLeft: -10,
-    borderWidth: 2,
-    borderColor: "#FFFFFF",
-  },
-  moreAvatarsText: {
-    fontSize: 12,
-    color: "#6B7280",
+    marginRight: 4,
   },
   modalContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "rgba(0,0,0,0.5)",
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
   },
   modalContent: {
-    backgroundColor: "white",
-    padding: 20,
-    borderRadius: 10,
-    alignItems: "center",
     width: "80%",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    padding: 20,
+    alignItems: "center",
   },
   modalAvatar: {
     width: 80,
     height: 80,
     borderRadius: 40,
-    marginBottom: 10,
+    marginBottom: 16,
   },
   modalName: {
     fontSize: 16,
     fontWeight: "600",
+    color: "#1F2937",
     marginBottom: 20,
   },
   closeButton: {
-    padding: 10,
-    backgroundColor: "#3B82F6",
-    borderRadius: 5,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    backgroundColor: "#EFF6FF",
+    borderRadius: 8,
   },
   closeButtonText: {
-    color: "white",
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#3B82F6",
   },
 });
 

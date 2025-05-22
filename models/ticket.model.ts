@@ -11,4 +11,22 @@ export const TicketSchema = z.object({
     updated_at: z.string().datetime({ message: "Invalid ISO 8601 datetime format" }),
 });
 
+export const ticketPayload = z.object({
+    tickets: z.array(
+        z.object({
+            ticket_id: z.number(),
+            quantity: z.number(),
+        })
+    )
+})
+
+export const userTicket = z.object({
+    id: z.number(),
+    ticket: TicketSchema,
+    used: z.boolean(),
+    purchase_date: z.string().datetime({ message: "Invalid ISO 8601 datetime format" }),
+})
+
 export type Ticket = z.infer<typeof TicketSchema>;
+export type TicketPayload = z.infer<typeof ticketPayload>;
+export type UserTicket = z.infer<typeof userTicket>;

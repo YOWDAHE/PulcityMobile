@@ -15,7 +15,7 @@ export interface ProfileData {
     // posts: number;
   };
 }
-export type TicketType = "Standard" | "VIP" | "VVIP" | "Premium" | "Student";
+export type TicketType = string;
 
 export interface Ticket {
   id: string;

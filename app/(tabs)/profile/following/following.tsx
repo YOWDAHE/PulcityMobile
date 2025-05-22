@@ -33,7 +33,7 @@ export default function FollowingTab() {
 				throw new Error("Access token is missing. Please log in.");
 			}
 
-			const organizers = await fetchFollowingOrganizers(tokens.access);
+			const organizers = await fetchFollowingOrganizers();
 			setFollowingOrganizers(organizers);
 			setError("");
 		} catch (err) {

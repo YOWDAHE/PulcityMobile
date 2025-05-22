@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
 	View,
 	Text,
@@ -12,26 +12,35 @@ import {
 	SafeAreaView,
 	TouchableWithoutFeedback,
 	Keyboard,
-} from 'react-native';
-import { useForm, Controller } from 'react-hook-form';
-import { router } from 'expo-router';
-import * as yup from 'yup';
-import { yupResolver } from '@hookform/resolvers/yup';
-import { useAuth } from '../hooks/useAuth';
-import { login } from '../../actions/auth.actions';
-import { Ionicons } from '@expo/vector-icons';
+	Image,
+	Dimensions,
+} from "react-native";
+import { useForm, Controller } from "react-hook-form";
+import { router } from "expo-router";
+import * as yup from "yup";
+import { yupResolver } from "@hookform/resolvers/yup";
+import { useAuth } from "../hooks/useAuth";
+import { login } from "../../actions/auth.actions";
+import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 
 // Form validation schema
 const schema = yup.object({
-	email: yup.string().email('Invalid email').required('Email is required'),
-	password: yup.string().required('Password is required').min(6, 'Password must be at least 6 characters'),
+	email: yup.string().email("Invalid email").required("Email is required"),
+	password: yup
+		.string()
+		.required("Password is required")
+		.min(6, "Password must be at least 6 characters"),
 });
 
 type FormData = yup.InferType<typeof schema>;
 
+const { width } = Dimensions.get("window");
+
 export default function Login() {
 	const [isLoading, setIsLoading] = useState(false);
-	const [error, setError] = useState('');
+	const [error, setError] = useState("");
+	const [showPassword, setShowPassword] = useState(false);
 	const { saveAuthData } = useAuth();
 
 	const {
@@ -41,23 +50,23 @@ export default function Login() {
 	} = useForm<FormData>({
 		resolver: yupResolver(schema),
 		defaultValues: {
-			email: '',
-			password: '',
+			email: "",
+			password: "",
 		},
 	});
 
 	const onSubmit = async (data: FormData) => {
 		try {
 			setIsLoading(true);
-			setError('');
+			setError("");
 
 			const verifiedUser = await login(data.email, data.password);
 
 			await saveAuthData(verifiedUser);
 
-			router.replace('/(tabs)/home');
+			router.replace("/(tabs)/home");
 		} catch (err) {
-			setError(err instanceof Error ? err.message : 'An error occurred');
+			setError(err instanceof Error ? err.message : "An error occurred");
 		} finally {
 			setIsLoading(false);
 		}
@@ -65,96 +74,168 @@ export default function Login() {
 
 	return (
 		<SafeAreaView style={styles.container}>
-			<KeyboardAvoidingView
-				behavior={Platform.OS === "ios" ? "padding" : "height"}
-				style={styles.keyboardAvoidingView}
+			<LinearGradient
+				colors={["#3B82F6", "#1E40AF"]}
+				style={styles.gradientBackground}
 			>
-				<ScrollView
-					contentContainerStyle={styles.scrollContent}
-					keyboardShouldPersistTaps="handled"
-					showsVerticalScrollIndicator={false}
+				<KeyboardAvoidingView
+					behavior={Platform.OS === "ios" ? "padding" : "height"}
+					style={styles.keyboardAvoidingView}
 				>
-					<TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-						<View style={styles.innerContainer}>
-							<View style={styles.header}>
-								<Ionicons name="ticket-outline" size={80} />
-								<Text style={styles.appName}>Pulcity</Text>
-								<Text style={styles.subtitle}>Sign in to continue</Text>
-							</View>
+					<ScrollView
+						contentContainerStyle={styles.scrollContent}
+						keyboardShouldPersistTaps="handled"
+						showsVerticalScrollIndicator={false}
+					>
+						<TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+							<View style={styles.innerContainer}>
+								<View style={styles.header}>
+									<View style={styles.logoContainer}>
+										<Ionicons name="ticket-outline" size={48} color="#ffffff" />
+									</View>
+									<Text style={styles.appName}>Pulcity</Text>
+									<Text style={styles.subtitle}>Discover Amazing Events</Text>
+								</View>
 
-							<View style={styles.form}>
-								<Controller
-									control={control}
-									name="email"
-									render={({ field: { onChange, value, onBlur } }) => (
-										<View style={styles.inputContainer}>
-											<Text style={styles.label}>Email</Text>
-											<TextInput
-												style={[styles.input, errors.email && styles.inputError]}
-												placeholder="Enter your email"
-												keyboardType="email-address"
-												autoCapitalize="none"
-												value={value}
-												onChangeText={onChange}
-												onBlur={onBlur}
-											/>
-											{errors.email && (
-												<Text style={styles.errorText}>{errors.email.message}</Text>
+								<View style={styles.formContainer}>
+									<View style={styles.formHeader}>
+										<Text style={styles.formTitle}>Welcome Back</Text>
+										<Text style={styles.formSubtitle}>Sign in to continue</Text>
+									</View>
+
+									<View style={styles.form}>
+										<Controller
+											control={control}
+											name="email"
+											render={({ field: { onChange, value, onBlur } }) => (
+												<View style={styles.inputContainer}>
+													<Text style={styles.label}>Email</Text>
+													<View
+														style={[
+															styles.inputWrapper,
+															errors.email && styles.inputWrapperError,
+														]}
+													>
+														<Ionicons
+															name="mail-outline"
+															size={20}
+															color="#666"
+															style={styles.inputIcon}
+														/>
+														<TextInput
+															style={styles.input}
+															placeholder="Enter your email"
+															placeholderTextColor="#999"
+															keyboardType="email-address"
+															autoCapitalize="none"
+															value={value}
+															onChangeText={onChange}
+															onBlur={onBlur}
+														/>
+													</View>
+													{errors.email && (
+														<Text style={styles.errorText}>{errors.email.message}</Text>
+													)}
+												</View>
 											)}
-										</View>
-									)}
-								/>
+										/>
 
-								<Controller
-									control={control}
-									name="password"
-									render={({ field: { onChange, value, onBlur } }) => (
-										<View style={styles.inputContainer}>
-											<Text style={styles.label}>Password</Text>
-											<TextInput
-												style={[styles.input, errors.password && styles.inputError]}
-												placeholder="Enter your password"
-												secureTextEntry
-												autoCapitalize="none"
-												value={value}
-												onChangeText={onChange}
-												onBlur={onBlur}
-											/>
-											{errors.password && (
-												<Text style={styles.errorText}>{errors.password.message}</Text>
+										<Controller
+											control={control}
+											name="password"
+											render={({ field: { onChange, value, onBlur } }) => (
+												<View style={styles.inputContainer}>
+													<Text style={styles.label}>Password</Text>
+													<View
+														style={[
+															styles.inputWrapper,
+															errors.password && styles.inputWrapperError,
+														]}
+													>
+														<Ionicons
+															name="lock-closed-outline"
+															size={20}
+															color="#666"
+															style={styles.inputIcon}
+														/>
+														<TextInput
+															style={styles.input}
+															placeholder="Enter your password"
+															placeholderTextColor="#999"
+															secureTextEntry={!showPassword}
+															autoCapitalize="none"
+															value={value}
+															onChangeText={onChange}
+															onBlur={onBlur}
+														/>
+														<Pressable
+															onPress={() => setShowPassword(!showPassword)}
+															style={styles.passwordToggle}
+														>
+															<Ionicons
+																name={showPassword ? "eye-off-outline" : "eye-outline"}
+																size={20}
+																color="#666"
+															/>
+														</Pressable>
+													</View>
+													{errors.password && (
+														<Text style={styles.errorText}>{errors.password.message}</Text>
+													)}
+												</View>
 											)}
+										/>
+
+										{/* <Pressable style={styles.forgotPassword}>
+											<Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+										</Pressable> */}
+
+										{error !== "" && (
+											<View style={styles.errorContainer}>
+												<Ionicons name="alert-circle" size={18} color="#ff4444" />
+												<Text style={styles.errorText}>{error}</Text>
+											</View>
+										)}
+
+										<Pressable
+											style={[styles.button, isLoading && styles.buttonDisabled]}
+											onPress={handleSubmit(onSubmit)}
+											disabled={isLoading}
+										>
+											{isLoading ? (
+												<ActivityIndicator color="#fff" />
+											) : (
+												<>
+													<Text style={styles.buttonText}>Sign In</Text>
+													<Ionicons
+														name="arrow-forward"
+														size={20}
+														color="#fff"
+														style={styles.buttonIcon}
+													/>
+												</>
+											)}
+										</Pressable>
+
+										<View style={styles.divider}>
+											<View style={styles.dividerLine} />
+											<Text style={styles.dividerText}>OR</Text>
+											<View style={styles.dividerLine} />
 										</View>
-									)}
-								/>
 
-								{error !== "" && <Text style={styles.errorText}>{error}</Text>}
-
-								<Pressable
-									style={[styles.button, isLoading && styles.buttonDisabled]}
-									onPress={handleSubmit(onSubmit)}
-									disabled={isLoading}
-								>
-									{isLoading ? (
-										<ActivityIndicator color="#fff" />
-									) : (
-										<Text style={styles.buttonText}>Sign In</Text>
-									)}
-								</Pressable>
-
-								<Pressable
-									onPress={() => router.push("/(auth)/signUp")}
-									style={styles.linkButton}
-								>
-									<Text style={styles.linkText}>
-										Don't have an account?{" "}
-										<Text style={styles.linkTextBold}>Sign Up</Text>
-									</Text>
-								</Pressable>
+										<Pressable
+											onPress={() => router.push("/(auth)/signUp")}
+											style={styles.secondaryButton}
+										>
+											<Text style={styles.secondaryButtonText}>Create New Account</Text>
+										</Pressable>
+									</View>
+								</View>
 							</View>
-						</View>
-					</TouchableWithoutFeedback>
-				</ScrollView>
-			</KeyboardAvoidingView>
+						</TouchableWithoutFeedback>
+					</ScrollView>
+				</KeyboardAvoidingView>
+			</LinearGradient>
 		</SafeAreaView>
 	);
 }
@@ -162,7 +243,10 @@ export default function Login() {
 const styles = StyleSheet.create({
 	container: {
 		flex: 1,
-		backgroundColor: "#fff",
+	},
+	gradientBackground: {
+		flex: 1,
+		width: "100%",
 	},
 	keyboardAvoidingView: {
 		flex: 1,
@@ -172,60 +256,126 @@ const styles = StyleSheet.create({
 	},
 	innerContainer: {
 		flex: 1,
+		justifyContent: "space-between",
 	},
 	header: {
-		padding: 24,
-		paddingTop: Platform.OS === "android" ? 48 : 24,
-		display: "flex",
-		justifyContent: "center",
+		paddingTop: Platform.OS === "android" ? 60 : 40,
+		paddingBottom: 40,
 		alignItems: "center",
 	},
+	logoContainer: {
+		width: 80,
+		height: 80,
+		borderRadius: 20,
+		backgroundColor: "rgba(255, 255, 255, 0.2)",
+		justifyContent: "center",
+		alignItems: "center",
+		marginBottom: 16,
+	},
 	appName: {
-		fontSize: 30,
-		fontWeight: "semibold",
-		marginTop: 10,
+		fontSize: 32,
+		fontWeight: "700",
+		color: "#ffffff",
+		marginBottom: 8,
 	},
 	subtitle: {
+		fontSize: 16,
+		color: "rgba(255, 255, 255, 0.8)",
+		letterSpacing: 0.5,
+	},
+	formContainer: {
+		backgroundColor: "#ffffff",
+		borderTopLeftRadius: 30,
+		borderTopRightRadius: 30,
+		paddingTop: 30,
+		paddingBottom: Platform.OS === "ios" ? 40 : 24,
+		paddingHorizontal: 24,
+		shadowColor: "#000",
+		shadowOffset: { width: 0, height: -3 },
+		shadowOpacity: 0.1,
+		shadowRadius: 6,
+		elevation: 10,
+	},
+	formHeader: {
+		marginBottom: 24,
+	},
+	formTitle: {
+		fontSize: 24,
+		fontWeight: "700",
+		color: "#333",
+		marginBottom: 8,
+	},
+	formSubtitle: {
 		fontSize: 16,
 		color: "#666",
 	},
 	form: {
-		flex: 1,
-		padding: 24,
-		gap: 20,
+		gap: 16,
 	},
 	inputContainer: {
 		gap: 8,
 	},
 	label: {
 		fontSize: 14,
-		fontWeight: "500",
+		fontWeight: "600",
 		color: "#333",
+		marginLeft: 4,
+	},
+	inputWrapper: {
+		flexDirection: "row",
+		alignItems: "center",
+		height: 56,
+		borderWidth: 1,
+		borderColor: "#e0e0e0",
+		borderRadius: 12,
+		backgroundColor: "#f9f9f9",
+		paddingHorizontal: 16,
+	},
+	inputWrapperError: {
+		borderColor: "#ff4444",
+		borderWidth: 1.5,
+	},
+	inputIcon: {
+		marginRight: 12,
 	},
 	input: {
-		height: 48,
-		borderWidth: 1,
-		borderColor: "#ddd",
-		borderRadius: 8,
-		paddingHorizontal: 16,
+		flex: 1,
 		fontSize: 16,
-		backgroundColor: "#f8f8f8",
+		color: "#333",
 	},
-	inputError: {
-		borderColor: "#ff4444",
+	passwordToggle: {
+		padding: 8,
 	},
 	errorText: {
 		color: "#ff4444",
-		fontSize: 12,
+		fontSize: 13,
+		marginLeft: 4,
 		marginTop: 4,
 	},
+	errorContainer: {
+		flexDirection: "row",
+		alignItems: "center",
+		backgroundColor: "#FFE5E5",
+		padding: 10,
+		borderRadius: 8,
+		marginBottom: 10,
+	},
+	forgotPassword: {
+		alignSelf: "flex-end",
+	},
+	forgotPasswordText: {
+		color: "#3B82F6",
+		fontSize: 14,
+		fontWeight: "600",
+	},
 	button: {
-		height: 48,
-		backgroundColor: "#007AFF",
-		borderRadius: 24,
+		height: 56,
+		backgroundColor: "#3B82F6",
+		borderRadius: 12,
 		justifyContent: "center",
 		alignItems: "center",
 		marginTop: 12,
+		flexDirection: "row",
 	},
 	buttonDisabled: {
 		opacity: 0.7,
@@ -235,16 +385,36 @@ const styles = StyleSheet.create({
 		fontSize: 16,
 		fontWeight: "600",
 	},
-	linkButton: {
-		alignItems: "center",
-		padding: 12,
+	buttonIcon: {
+		marginLeft: 8,
 	},
-	linkText: {
+	divider: {
+		flexDirection: "row",
+		alignItems: "center",
+		marginVertical: 16,
+	},
+	dividerLine: {
+		flex: 1,
+		height: 1,
+		backgroundColor: "#e0e0e0",
+	},
+	dividerText: {
 		color: "#666",
 		fontSize: 14,
+		marginHorizontal: 12,
 	},
-	linkTextBold: {
-		color: "#007AFF",
+	secondaryButton: {
+		height: 56,
+		borderWidth: 1,
+		borderColor: "#3B82F6",
+		borderRadius: 12,
+		justifyContent: "center",
+		alignItems: "center",
+		backgroundColor: "transparent",
+	},
+	secondaryButtonText: {
+		color: "#3B82F6",
+		fontSize: 16,
 		fontWeight: "600",
 	},
 });

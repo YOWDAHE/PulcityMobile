@@ -1,6 +1,6 @@
 import { Tabs, Redirect, usePathname } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import {  View, StyleSheet } from "react-native";
+import { View, StyleSheet } from "react-native";
 import { Header } from "../components/Header";
 import * as Font from "expo-font";
 import {
@@ -9,16 +9,46 @@ import {
 	Poppins_600SemiBold,
 	useFonts,
 } from "@expo-google-fonts/poppins";
+import NotificationBadge from "../components/NotificationBadge";
+import { useState, useEffect } from "react";
+import { useAuth } from "@/app/hooks/useAuth";
+import { fetchNotifications } from "@/actions/notification.actions";
 
 export default function TabLayout() {
 	// const { isAuthenticated, isLoading } = useAuth();
 	const pathname = usePathname();
+	const { tokens } = useAuth();
 	const isChatDetailScreen = pathname.startsWith("/chat");
+	const isHomeScreen = pathname.startsWith("/home");
+	const [hasUnreadNotifications, setHasUnreadNotifications] = useState(false);
+
 	const [fontsLoaded] = useFonts({
 		Poppins_400Regular,	
 		Poppins_500Medium,
 		Poppins_600SemiBold,
 	});
+
+	useEffect(() => {
+		// Check for unread notifications
+		const checkNotifications = async () => {
+			try {
+				if (tokens?.access) {
+					const notifications = await fetchNotifications();
+					const unreadCount = notifications.filter(n => !n.read).length;
+					setHasUnreadNotifications(unreadCount > 0);
+				}
+			} catch (error) {
+				console.error("Failed to fetch notifications:", error);
+			}
+		};
+
+		checkNotifications();
+		
+		// Set up a refresh interval (every 2 minutes)
+		const interval = setInterval(checkNotifications, 120000);
+		
+		return () => clearInterval(interval);
+	}, [tokens]);
 
 	// if (isLoading) {
 	// 	return (
@@ -34,7 +64,7 @@ export default function TabLayout() {
 
 	return (
 		<View style={styles.container}>
-			{!isChatDetailScreen && <Header />}
+			{/* {!isChatDetailScreen && !isHomeScreen && <Header />} */}
 			<Tabs
 				screenOptions={{
 					headerShown: false,
@@ -76,7 +106,10 @@ export default function TabLayout() {
 						headerShown: false,
 						title: "Messages",
 						tabBarIcon: ({ color, size }) => (
-							<Ionicons name="chatbubble-ellipses-outline" size={size} color={color} />
+							<View style={styles.iconContainer}>
+								<Ionicons name="chatbubble-ellipses-outline" size={size} color={color} />
+								<NotificationBadge visible={hasUnreadNotifications} size="small" />
+							</View>
 						),
 					}}
 				/>
@@ -99,6 +132,11 @@ const styles = StyleSheet.create({
 	container: {
 		flex: 1,
 		// position: "relative",
+	},
+	iconContainer: {
+		position: 'relative',
+		alignItems: 'center',
+		justifyContent: 'center',
 	},
 	loadingContainer: {
 		flex: 1,

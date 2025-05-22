@@ -6,25 +6,74 @@ import {
     ActivityIndicator,
     Text,
     RefreshControl,
+    Image,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import EventCard from "@/app/components/EventCard";
-import { getEvents } from "@/actions/event.actions";
+import { getEvents, getFollowedEvents, getUpcomingEvents } from "@/actions/event.actions";
 import { Event } from "@/models/event.model";
 import { useAuth } from "@/app/hooks/useAuth";
+import { Header } from "@/app/components/Header";
+import { Ionicons } from "@expo/vector-icons";
+
+type FeedType = 'all' | 'following' | 'upcoming';
+
+const EmptyState = ({ type }: { type: FeedType }) => {
+    const messages = {
+        all: {
+            title: "No Events Found",
+            message: "There are no events available at the moment.",
+            icon: "calendar-outline"
+        },
+        following: {
+            title: "No Events From Following",
+            message: "Events from organizers you follow will appear here.",
+            icon: "people-outline"
+        },
+        upcoming: {
+            title: "No Upcoming Events",
+            message: "You don't have any upcoming events.",
+            icon: "time-outline"
+        }
+    };
+
+    const content = messages[type];
+
+    return (
+        <View style={styles.emptyStateContainer}>
+            <Ionicons name={content.icon} size={64} color="#ccc" />
+            <Text style={styles.emptyStateTitle}>{content.title}</Text>
+            <Text style={styles.emptyStateMessage}>{content.message}</Text>
+        </View>
+    );
+};
 
 export default function HomeScreen() {
     const [events, setEvents] = useState<Event[] | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState("");
     const [isRefreshing, setIsRefreshing] = useState(false);
+    const [feedType, setFeedType] = useState<FeedType>('all');
 
-    const fetchEvents = async () => {
+    const fetchEvents = async (type: FeedType = feedType) => {
         try {
             setIsLoading(true);
-			const fetchedEvents = await getEvents();
-			const filteredEvents = fetchedEvents.filter((event) => event.id != 1 && event.id != 2);
-            setEvents(filteredEvents);
+            let fetchedEvents: Event[];
+            
+            switch (type) {
+                case 'following':
+                    fetchedEvents = await getFollowedEvents();
+                    break;
+                case 'upcoming':
+                    fetchedEvents = await getUpcomingEvents();
+                    break;
+                default:
+                    fetchedEvents = await getEvents();
+                    fetchedEvents = fetchedEvents.filter((event) => event.id != 1 && event.id != 2);
+                    break;
+            }
+            
+            setEvents(fetchedEvents);
             setError("");
         } catch (err) {
             setError(err instanceof Error ? err.message : "An error occurred");
@@ -35,14 +84,14 @@ export default function HomeScreen() {
     };
 
     useEffect(() => {
-            fetchEvents();
-    }, []);
+        fetchEvents(feedType);
+    }, [feedType]);
 
-	const onRefresh = async () => {
-		fetchEvents();
+    const onRefresh = async () => {
+        fetchEvents();
     };
 
-    if ( isLoading) {
+    if (isLoading) {
         return (
             <View style={styles.loadingContainer}>
                 <ActivityIndicator size="large" color="#007AFF" />
@@ -51,33 +100,36 @@ export default function HomeScreen() {
     }
 
     if (error) {
-		return (
-			<ScrollView
-				style={styles.scrollView}
-				refreshControl={
-					<RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} />
-				}
-			>
-				<View style={styles.errorContainer}>
-					<Text style={styles.errorText}>{error}</Text>
-				</View>
-			</ScrollView>
-		);
-    }
-
-    return (
-        <View style={styles.container}>
+        return (
             <ScrollView
-                // style={styles.scrollView}
+                style={styles.scrollView}
                 refreshControl={
                     <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} />
                 }
             >
-                {events?.map((event) => 
-				{
-					return <EventCard key={event.id} event={event} />
-				}
-                ).reverse()}
+                <View style={styles.errorContainer}>
+                    <Text style={styles.errorText}>{error}</Text>
+                </View>
+            </ScrollView>
+        );
+    }
+
+    return (
+        <View style={styles.container}>
+            <Header feedType={feedType} onFeedTypeChange={setFeedType} />
+            <ScrollView
+                refreshControl={
+                    <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} />
+                }
+                contentContainerStyle={!events?.length ? { flex: 1 } : undefined}
+            >
+                {events?.length ? (
+                    events.map((event) => (
+                        <EventCard key={event.id} event={event} />
+                    )).reverse()
+                ) : (
+                    <EmptyState type={feedType} />
+                )}
                 <View style={{ marginBottom: 60 }} />
             </ScrollView>
         </View>
@@ -108,5 +160,24 @@ const styles = StyleSheet.create({
         color: "red",
         fontSize: 16,
         textAlign: "center",
+    },
+    emptyStateContainer: {
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+        padding: 20,
+    },
+    emptyStateTitle: {
+        fontSize: 20,
+        fontWeight: "600",
+        marginTop: 16,
+        marginBottom: 8,
+        fontFamily: "poppinsMedium",
+    },
+    emptyStateMessage: {
+        fontSize: 16,
+        color: "#666",
+        textAlign: "center",
+        fontFamily: "poppins",
     },
 });

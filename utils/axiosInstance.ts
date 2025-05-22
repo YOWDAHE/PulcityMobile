@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
+import { router } from 'expo-router';
 
 const axiosInstance = axios.create({
     baseURL: 'https://www.mindahun.pro.et/api/v1',
@@ -15,6 +16,8 @@ axiosInstance.interceptors.request.use(
         const token = await AsyncStorage.getItem("pulcity_token");
         if (token) {
             config.headers['Authorization'] = `Bearer ${token}`;
+        } else {
+            router.replace('/login');
         }
         return config;
     },

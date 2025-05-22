@@ -17,30 +17,46 @@ import Animated, {
 	withTiming,
 	runOnJS,
 } from "react-native-reanimated";
-import { router, useFocusEffect } from "expo-router";
+import { router, useFocusEffect, usePathname } from "expo-router";
 import { notificationResponse } from "@/models/notification.model";
 import { useAuth } from "../hooks/useAuth";
-import { fetchNotifications } from "@/actions/notification.actions";
+import { fetchNotifications, markAllNotificationsAsRead } from "@/actions/notification.actions";
+import NotificationBadge from "./NotificationBadge";
 
-export function Header() {
+type FeedType = "all" | "following" | "upcoming";
+
+interface HeaderProps {
+	feedType?: FeedType;
+	onFeedTypeChange?: (type: FeedType) => void;
+	title?: String;
+}
+
+export function Header({ feedType, onFeedTypeChange, title }: HeaderProps) {
 	const navigation = useNavigation();
+	const pathname = usePathname();
 	const [isSearchModalVisible, setIsSearchModalVisible] = useState(false);
+	const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 	const translateY = useSharedValue(-200);
 	const [notifications, setNotifications] = useState<notificationResponse[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState("");
-	const { tokens } = useAuth();
 	const [isRefreshing, setIsRefreshing] = useState(false);
+	const [hasUnreadNotifications, setHasUnreadNotifications] = useState(false);
+
+	const feedOptions: { label: string; value: FeedType }[] = [
+		{ label: "Pulcity", value: "all" },
+		{ label: "Following", value: "following" },
+		{ label: "Upcoming", value: "upcoming" },
+	];
 
 	const getNotifications = async () => {
 		try {
-			if (!tokens?.access) {
-				console.log("Access token is missing in the notification page");
-				return;
-			}
-			const response = await fetchNotifications(tokens?.access);
+			const response = await fetchNotifications();
 
 			setNotifications(response);
+
+			const unreadCount = response.filter((n) => !n.read).length;
+			setHasUnreadNotifications(unreadCount > 0);
 			setLoading(false);
 		} catch (err) {
 			setError("Failed to load notifications");
@@ -51,18 +67,15 @@ export function Header() {
 		}
 	};
 
-	// useEffect(() => {
-	//     getNotifications();
-	// }, [tokens]);
-
 	useFocusEffect(
 		useCallback(() => {
 			getNotifications();
-		}, [tokens])
+		}, [])
 	);
 
-	const openDrawer = () => {
-		navigation.dispatch(DrawerActions.openDrawer());
+	const handleFeedTypeChange = (type: FeedType) => {
+		onFeedTypeChange?.(type);
+		setIsDropdownOpen(false);
 	};
 
 	const showModal = () => {
@@ -82,21 +95,76 @@ export function Header() {
 		};
 	});
 
+	const navigateToNotifications = () => {
+		router.push({
+			pathname: "/notification",
+			params: { notificationsJson: JSON.stringify(notifications) },
+		});
+	};
+
+	const handleNotificationPress = () => {
+		if (hasUnreadNotifications) {
+			setHasUnreadNotifications(false); // Reset badge when navigating to notifications
+		}
+		navigateToNotifications();
+	};
+
 	return (
 		<SafeAreaView style={styles.safeArea}>
 			<View style={styles.container}>
-				<Text style={styles.title}>Pulcity</Text>
-				<TouchableOpacity
-					style={styles.notificationButton}
-					onPress={() =>
-						router.push({
-							pathname: "/notification",
-							params: { notificationsJson: JSON.stringify(notifications) },
-						})
-					}
-				>
-					<Ionicons name="notifications-outline" size={24} color="#000" />
-				</TouchableOpacity>
+				{pathname === "/home" && feedType ? (
+					<View style={styles.dropdownContainer}>
+						<TouchableOpacity
+							style={styles.dropdownButton}
+							onPress={() => setIsDropdownOpen(!isDropdownOpen)}
+						>
+							<Text style={styles.dropdownButtonText}>
+								{feedOptions.find((option) => option.value === feedType)?.label}
+							</Text>
+							<Ionicons
+								name={isDropdownOpen ? "chevron-up" : "chevron-down"}
+								size={16}
+								color="#000"
+								style={styles.dropdownIcon}
+							/>
+						</TouchableOpacity>
+
+						{isDropdownOpen && (
+							<View style={styles.dropdownMenu}>
+								{feedOptions.map((option) => (
+									<TouchableOpacity
+										key={option.value}
+										style={[
+											styles.dropdownItem,
+											feedType === option.value && styles.dropdownItemSelected,
+										]}
+										onPress={() => handleFeedTypeChange(option.value)}
+									>
+										<Text
+											style={[
+												styles.dropdownItemText,
+												feedType === option.value && styles.dropdownItemTextSelected,
+											]}
+										>
+											{option.label}
+										</Text>
+									</TouchableOpacity>
+								))}
+							</View>
+						)}
+					</View>
+				) : (
+					<Text style={styles.title}>{title || "Pulcity"}</Text>
+				)}
+				<View style={styles.iconContainer}>
+					<TouchableOpacity
+						style={styles.notificationButton}
+						onPress={handleNotificationPress}
+					>
+						<Ionicons name="notifications-outline" size={24} color="#000" />
+						<NotificationBadge visible={hasUnreadNotifications} size="small" />
+					</TouchableOpacity>
+				</View>
 			</View>
 
 			<Modal
@@ -136,6 +204,8 @@ export function Header() {
 const styles = StyleSheet.create({
 	safeArea: {
 		backgroundColor: "#fff",
+		zIndex: 100,
+		// elevation: 100,
 	},
 	container: {
 		flexDirection: "row",
@@ -144,10 +214,8 @@ const styles = StyleSheet.create({
 		paddingVertical: 10,
 		backgroundColor: "white",
 		justifyContent: "space-between",
-		// marginBottom: -20,
-	},
-	menuButton: {
-		padding: 4,
+		zIndex: 100,
+		// elevation: 100,
 	},
 	title: {
 		fontSize: 16,
@@ -155,13 +223,69 @@ const styles = StyleSheet.create({
 		marginLeft: 12,
 		fontFamily: "poppinsMedium",
 	},
-	searchButton: {
+	dropdownContainer: {
+		position: "relative",
+		zIndex: 1000,
+		elevation: 1000,
+		flex: 1,
+		marginRight: 16,
+	},
+	dropdownButton: {
+		flexDirection: "row",
+		alignItems: "center",
+		// paddingVertical: 8,
+		paddingHorizontal: 12,
+	},
+	dropdownButtonText: {
+		fontSize: 16,
+		fontWeight: "600",
+		fontFamily: "poppinsMedium",
+	},
+	dropdownIcon: {
+		marginLeft: 4,
+	},
+	dropdownMenu: {
+		position: "absolute",
+		top: "100%",
+		left: 0,
+		right: 0,
+		backgroundColor: "white",
+		borderRadius: 8,
 		padding: 4,
-		marginLeft: "auto",
+		shadowColor: "#000",
+		shadowOffset: {
+			width: 0,
+			height: 2,
+		},
+		shadowOpacity: 0.25,
+		shadowRadius: 3.84,
+		elevation: 1000,
+		zIndex: 1000,
+	},
+	dropdownItem: {
+		padding: 12,
+		borderRadius: 6,
+	},
+	dropdownItemSelected: {
+		backgroundColor: "#f0f0f0",
+	},
+	dropdownItemText: {
+		fontSize: 14,
+		fontFamily: "poppins",
+	},
+	dropdownItemTextSelected: {
+		fontWeight: "600",
+		fontFamily: "poppinsMedium",
+	},
+	iconContainer: {
+		position: "relative",
 	},
 	notificationButton: {
-		padding: 4,
-		marginLeft: 12,
+		position: "relative",
+		width: 40,
+		height: 40,
+		justifyContent: "center",
+		alignItems: "center",
 	},
 	modalContainer: {
 		flex: 1,

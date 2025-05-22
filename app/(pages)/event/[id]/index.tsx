@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
 	View,
 	Text,
@@ -78,6 +78,39 @@ const EventPage = () => {
 			</View>
 		);
 	}
+
+	const isEventPassed = new Date(event.start_date) < new Date();
+
+	const getEventRating = (event: Event): number | null => {
+		if (!event.rating) return null;
+
+		if (typeof event.rating === "number") return event.rating;
+
+		if (typeof event.rating === "object" && "value" in event.rating) {
+			return event.rating.value;
+		}
+
+		return null;
+	};
+
+	const getRatingComment = (event: Event): string | null => {
+		if (
+			!event.rating ||
+			typeof event.rating !== "object" ||
+			!("comment" in event.rating)
+		) {
+			return null;
+		}
+		return event.rating.comment;
+	};
+
+	const handleNavigateToRate = () => {
+		router.push({
+			pathname: "/rate/[id]",
+			params: { id: event.id },
+		});
+	};
+
 	return (
 		<View style={styles.container}>
 			<ScrollView contentContainerStyle={styles.scrollContent}>
@@ -125,7 +158,15 @@ const EventPage = () => {
 					</PagerView>
 					<View style={styles.heroInformation}>
 						<Text style={styles.title}>{event.title}</Text>
-						<View style={{ display: "flex", gap: 10, flexDirection: "row" }}>
+						<View
+							style={{
+								display: "flex",
+								// justifyContent: "space-between",
+								alignItems: "flex-end",
+								flexDirection: "row",
+								gap: 15,
+							}}
+						>
 							<View style={styles.infoTextContainer}>
 								<Ionicons name="calendar" color="white" />
 								<Text style={styles.infoText}>
@@ -141,24 +182,67 @@ const EventPage = () => {
 									})}
 								</Text>
 							</View>
-							<View style={styles.infoTextContainer}>
-								<Ionicons name="location-outline" color="white" />
-								<Text style={styles.infoText}>{event.location}</Text>
-							</View>
+						</View>
+						<View style={styles.infoTextContainer}>
+							<Ionicons name="location-outline" color="white" />
+							<Text style={styles.infoText}>{JSON.parse(event.location).name}</Text>
 						</View>
 					</View>
 				</View>
 				<View style={styles.infoContainer}>
 					<Text style={styles.about}>About Event</Text>
 					<TiptapRenderer htmlContent={event.description} />
+					{event.rated && (
+						<View style={styles.ratingSection}>
+							<View style={styles.ratingHeader}>
+								<Text style={styles.ratingLabel}>Your Rating</Text>
+								<TouchableOpacity
+									style={styles.updateRatingButton}
+									onPress={handleNavigateToRate}
+								>
+									<Ionicons name="create-outline" size={16} color="#3B82F6" />
+									<Text style={styles.updateRatingText}>Update</Text>
+								</TouchableOpacity>
+							</View>
+							<View style={styles.ratingContent}>
+								<View style={styles.starsContainer}>
+									{[1, 2, 3, 4, 5].map((star) => (
+										<Ionicons
+											key={star}
+											name={star <= (getEventRating(event) || 0) ? "star" : "star-outline"}
+											size={24}
+											color="#FFBB0A"
+											style={styles.starIcon}
+										/>
+									))}
+									<Text style={styles.ratingValue}>{getEventRating(event)}/5</Text>
+								</View>
+								{getRatingComment(event) && (
+									<View style={styles.commentContainer}>
+										<Text style={styles.commentLabel}>Your comment:</Text>
+										<Text style={styles.commentText}>{getRatingComment(event)}</Text>
+									</View>
+								)}
+							</View>
+						</View>
+					)}
 				</View>
 			</ScrollView>
-			<TouchableOpacity
-				style={styles.button}
-				onPress={() => router.push(`/ticket/${event.id}`)}
-			>
-				<Text style={styles.buttonText}>Buy Tickets</Text>
-			</TouchableOpacity>
+			
+			{!isEventPassed && (
+				<TouchableOpacity
+					style={styles.button}
+					onPress={() => router.push(`/ticket/${event.id}`)}
+				>
+					<Text style={styles.buttonText}>Buy Tickets</Text>
+				</TouchableOpacity>
+			)}
+			{event.has_attended && !event.rated && (
+				<TouchableOpacity style={styles.rateButton} onPress={handleNavigateToRate}>
+					<Ionicons name="star" size={15} color="#000000" />
+					<Text style={styles.rateButtonText}>Rate this event</Text>
+				</TouchableOpacity>
+			)}
 		</View>
 	);
 };
@@ -206,8 +290,9 @@ const styles = StyleSheet.create({
 	},
 	infoTextContainer: {
 		flexDirection: "row",
-		gap: 8,
+		gap: 4,
 		alignItems: "center",
+		// marginTop: 10,
 	},
 	about: {
 		fontWeight: "bold",
@@ -239,6 +324,23 @@ const styles = StyleSheet.create({
 		fontSize: 16,
 		fontWeight: "bold",
 	},
+	rateButton: {
+		position: "absolute",
+		bottom: 0,
+		left: 0,
+		right: 0,
+		backgroundColor: "orange",
+		padding: 16,
+		alignItems: "center",
+		flexDirection: "row",
+		justifyContent: "center",
+		gap: 10,
+	},
+	rateButtonText: {
+		color: "black",
+		fontSize: 16,
+		fontWeight: "bold",
+	},
 	hero: {
 		position: "relative",
 		paddingHorizontal: 10,
@@ -265,6 +367,68 @@ const styles = StyleSheet.create({
 		color: "red",
 		fontSize: 16,
 		textAlign: "center",
+	},
+	ratingSection: {
+		marginTop: 24,
+		borderTopWidth: 1,
+		borderTopColor: "#E5E7EB",
+		paddingTop: 16,
+	},
+	ratingHeader: {
+		flexDirection: "row",
+		justifyContent: "space-between",
+		alignItems: "center",
+		marginBottom: 12,
+	},
+	ratingLabel: {
+		fontSize: 18,
+		fontWeight: "bold",
+	},
+	updateRatingButton: {
+		flexDirection: "row",
+		alignItems: "center",
+		padding: 8,
+		borderRadius: 6,
+		backgroundColor: "#EBF5FF",
+		gap: 4,
+	},
+	updateRatingText: {
+		color: "#3B82F6",
+		fontWeight: "500",
+		fontSize: 14,
+	},
+	ratingContent: {
+		backgroundColor: "#F9FAFB",
+		borderRadius: 8,
+		padding: 16,
+	},
+	starsContainer: {
+		flexDirection: "row",
+		alignItems: "center",
+	},
+	starIcon: {
+		marginRight: 4,
+	},
+	ratingValue: {
+		marginLeft: 8,
+		fontSize: 16,
+		fontWeight: "600",
+	},
+	commentContainer: {
+		marginTop: 12,
+		borderTopWidth: 1,
+		borderTopColor: "#E5E7EB",
+		paddingTop: 12,
+	},
+	commentLabel: {
+		fontSize: 14,
+		fontWeight: "600",
+		marginBottom: 4,
+	},
+	commentText: {
+		fontSize: 14,
+		fontStyle: "italic",
+		color: "#4B5563",
 	},
 });
 

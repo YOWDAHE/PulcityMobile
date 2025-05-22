@@ -12,17 +12,10 @@ const BASE_URL = "https://www.mindahun.pro.et/api/v1";
  * @returns Promise resolving to an array of organizers
  * @throws Error if the API request fails or the response is invalid
  */
-export const fetchFollowingOrganizers = async (accessToken: string): Promise<Organizer[]> => {
+export const fetchFollowingOrganizers = async (): Promise<Organizer[]> => {
     try {
-        if (!accessToken) {
-            throw new Error("Access token is required to fetch the following organizers");
-        }
 
-        const response: AxiosResponse<getFollowingResponse> = await axios.get(`${BASE_URL}/users/me/following/`, {
-            headers: {
-                Authorization: `Bearer ${accessToken}`,
-            },
-        });
+        const response: AxiosResponse<getFollowingResponse> = await axiosInstance.get(`${BASE_URL}/users/me/following/`);
 
         console.log("Fetched following organizers successfully:", response.data);
         return response.data.results as Organizer[];
