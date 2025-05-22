@@ -3,7 +3,7 @@ import ReplyMessageBar from "@/components/ReplyMessageBar";
 import { Colors } from "@/constants/Colors";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useState, useCallback, useEffect, useRef } from "react";
-import { ImageBackground, StyleSheet, View, Text, Image } from "react-native";
+import { ImageBackground, StyleSheet, View, Text, Image, Alert, Platform, ActivityIndicator, Modal, TouchableOpacity, Dimensions } from "react-native";
 import { Swipeable } from "react-native-gesture-handler";
 import {
 	GiftedChat,
@@ -12,6 +12,7 @@ import {
 	Send,
 	SystemMessage,
 	IMessage,
+	MessageImage,
 } from "react-native-gifted-chat";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { usePubNub } from "pubnub-react";
@@ -27,6 +28,8 @@ import { useLocalSearchParams } from "expo-router";
 import { Event } from "@/models/event.model";
 import { getEventById } from "@/actions/event.actions";
 import { useNavigation } from "@react-navigation/native";
+import * as ImagePicker from "expo-image-picker";
+import Constants from "expo-constants";
 
 interface MessageEvent extends PubNubMessageEvent {
 	channel: string;
@@ -43,6 +46,66 @@ interface PresenceEventExtended extends PresenceEvent {
 	timestamp: number;
 	state?: Record<string, unknown>;
 }
+
+// Interface to add group metadata to messages
+interface ExtendedIMessage extends IMessage {
+	groupId?: string; // For tracking which group this image belongs to
+	originalImageUri?: string; // For storing the local URI before upload
+}
+
+// Helper function to upload to Cloudinary
+const uploadToCloudinary = async (uri: string): Promise<string> => {
+	try {
+		// Get Cloudinary credentials from env
+		const cloudName = Constants.expoConfig?.extra?.CLOUDINARY_CLOUD_NAME;
+		const uploadPreset = Constants.expoConfig?.extra?.CLOUDINARY_UPLOAD_PRESET;
+		
+		if (!cloudName || !uploadPreset) {
+			throw new Error('Cloudinary configuration missing');
+		}
+
+		// Create form data for upload
+		const formData = new FormData();
+		
+		// Get file extension
+		const uriParts = uri.split('.');
+		const fileType = uriParts[uriParts.length - 1];
+		
+		// Append image file
+		formData.append('file', {
+			uri,
+			name: `photo-${Date.now()}.${fileType}`,
+			type: `image/${fileType}`,
+		} as any);
+		
+		formData.append('upload_preset', uploadPreset);
+		
+		// Upload to Cloudinary
+		const response = await fetch(
+			`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+			{
+				method: 'POST',
+				body: formData,
+				headers: {
+					'Accept': 'application/json',
+					'Content-Type': 'multipart/form-data',
+				},
+			}
+		);
+		
+		const data = await response.json();
+		console.log('Cloudinary upload response:', data);
+		
+		if (data.secure_url) {
+			return data.secure_url;
+		} else {
+			throw new Error('Upload failed');
+		}
+	} catch (error) {
+		console.error('Error uploading to Cloudinary:', error);
+		throw error;
+	}
+};
 
 const Page = () => {
 	const { id } = useLocalSearchParams();
@@ -63,6 +126,14 @@ const Page = () => {
 	const [event, setEvent] = useState<Event>();
 
 	const channel = `${id}`;
+
+	// Add state for image uploading
+	const [isUploading, setIsUploading] = useState(false);
+	const [uploadProgress, setUploadProgress] = useState(0);
+
+	// Add state for image viewer modal
+	const [imageViewerVisible, setImageViewerVisible] = useState(false);
+	const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
 	useEffect(() => {
 		if (!authUser) return;
@@ -105,7 +176,7 @@ const Page = () => {
 				console.log("PubNub fetchMessages response:", response?.channels);
 				
 				if (response?.channels[channel] && !initialHistoryLoaded) {
-					const historyMessages: IMessage[] = response.channels[channel].map(
+					const historyMessages: ExtendedIMessage[] = response.channels[channel].map(
 						(message) => {
 							console.log("Processing history message:", message);
 							
@@ -117,8 +188,10 @@ const Page = () => {
 							
 							return {
 								_id: message.timetoken.toString(),
-								text: message.message.text,
+								text: message.message.text || '',
 								createdAt: new Date(Number(message.timetoken) / 10000),
+								image: message.message.image || undefined, // Add image URL if exists
+								groupId: message.message.groupId || String(id), // Add group ID
 								user: {
 									_id: message.uuid || "unknown",
 									name: userName,
@@ -164,13 +237,15 @@ const Page = () => {
 						// Get user info from the message or from our userMap
 						const userName = 
 							messageEvent.message.user?.name || 
-							userMap[messageEvent.publisher]?.username || 
+							(messageEvent.publisher && userMap[messageEvent.publisher]?.username) || 
 							"Unknown User";
 						
-						const newMessage: IMessage = {
+						const newMessage: ExtendedIMessage = {
 							_id: messageEvent.timetoken.toString(),
 							text: messageEvent.message.text,
 							createdAt: new Date(Number(messageEvent.timetoken) / 10000),
+							image: messageEvent.message.image, // Handle image property
+							groupId: messageEvent.message.groupId, // Store group ID
 							user: {
 								_id: messageEvent.publisher,
 								name: userName,
@@ -234,7 +309,7 @@ const Page = () => {
 
 			// Publish the message to PubNub
 			newMessages.forEach((message) => {
-				console.log("Sending message:", message.text);
+				console.log("Sending message:", message.text, "Image:", message.image ? "Yes" : "No");
 				pubnub.publish(
 					{
 						channel,
@@ -278,6 +353,132 @@ const Page = () => {
 		});
 	}, []);
 
+	// Function to pick and upload image
+	const pickImage = async () => {
+		try {
+			// Request permission
+			const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+			
+			if (status !== 'granted') {
+				Alert.alert('Permission Required', 'Sorry, we need camera roll permissions to make this work!');
+				return;
+			}
+
+			// Launch image library
+			const result = await ImagePicker.launchImageLibraryAsync({
+				mediaTypes: ImagePicker.MediaTypeOptions.Images,
+				allowsEditing: true,
+				aspect: [4, 3],
+				quality: 0.8,
+			});
+
+			console.log('Image picker result:', result);
+
+			if (!result.canceled && result.assets && result.assets[0]) {
+				// Start upload process
+				uploadAndSendImage(result.assets[0].uri);
+			}
+		} catch (error) {
+			console.error('Error picking image:', error);
+			Alert.alert('Error', 'Failed to pick image');
+		}
+	};
+
+	// Upload image to Cloudinary then send message
+	const uploadAndSendImage = async (imageUri: string) => {
+		if (!authUser || !imageUri) return;
+		
+		setIsUploading(true);
+		setUploadProgress(0);
+		
+		try {
+			// 1. Create a temporary message with local image for immediate feedback
+			const tempMessageId = `temp-${new Date().getTime()}`;
+			const tempMessage: ExtendedIMessage = {
+				_id: tempMessageId,
+				text: '',
+				createdAt: new Date(),
+				image: imageUri,
+				originalImageUri: imageUri, // Store original URI
+				groupId: String(id), // Associate with current group/channel
+				pending: true, // Mark as pending
+				user: {
+					_id: String(authUser.id),
+					name: authUser.username,
+				},
+			};
+			
+			// Add temporary message to local state
+			setMessages(previousMessages => 
+				GiftedChat.append(previousMessages, [tempMessage])
+			);
+			
+			// 2. Upload to Cloudinary
+			setUploadProgress(30);
+			const cloudinaryUrl = await uploadToCloudinary(imageUri);
+			setUploadProgress(80);
+			
+			// 3. Create final message with Cloudinary URL
+			const finalMessageId = new Date().getTime().toString();
+			const finalMessage: ExtendedIMessage = {
+				_id: finalMessageId,
+				text: '',
+				createdAt: new Date(),
+				image: cloudinaryUrl,
+				groupId: String(id), // Associate with current group/channel
+				user: {
+					_id: String(authUser.id),
+					name: authUser.username,
+				},
+			};
+			
+			// 4. Replace temp message with final message
+			setMessages(previousMessages => {
+				// Filter out the temporary message
+				const filteredMessages = previousMessages.filter(msg => msg._id !== tempMessageId);
+				// Add the new message with the cloudinary URL
+				return GiftedChat.append(filteredMessages, [finalMessage]);
+			});
+			
+			// 5. Publish message to PubNub
+			pubnub.publish(
+				{
+					channel,
+					message: {
+						text: '',
+						createdAt: finalMessage.createdAt,
+						image: cloudinaryUrl,
+						groupId: String(id),
+						user: {
+							_id: authUser.id,
+							name: authUser.username,
+						},
+					},
+				},
+				(status, response) => {
+					if (status.error) {
+						console.error("Image message failed to send:", status);
+						Alert.alert("Error", "Failed to send image");
+					} else {
+						console.log("Image message sent successfully:", response);
+						setUploadProgress(100);
+					}
+				}
+			);
+		} catch (error) {
+			console.error('Error sending image message:', error);
+			Alert.alert('Error', 'Failed to upload image');
+			
+			// Remove the temporary message on error
+			setMessages(previousMessages => 
+				previousMessages.filter(msg => !msg._id.toString().startsWith('temp-'))
+			);
+		} finally {
+			setIsUploading(false);
+			setUploadProgress(0);
+		}
+	};
+
 	const renderInputToolbar = (props: any) => {
 		return (
 			<InputToolbar
@@ -298,12 +499,16 @@ const Page = () => {
 							paddingHorizontal: 10,
 						}}
 					>
-						<Ionicons
-							name="add"
-							color={Colors.primary}
-							size={28}
-							onPress={() => {}}
-						/>
+						{isUploading ? (
+							<ActivityIndicator size="small" color={Colors.primary} />
+						) : (
+							<Ionicons
+								name="add"
+								color={Colors.primary}
+								size={28}
+								onPress={pickImage}
+							/>
+						)}
 					</View>
 				)}
 			/>
@@ -330,6 +535,64 @@ const Page = () => {
 		}
 	}, [replyMessage]);
 
+	// Function to handle image tap
+	const handleImageTap = (imageUrl: string) => {
+		setSelectedImage(imageUrl);
+		setImageViewerVisible(true);
+	};
+
+	// Add custom rendering for image messages with loading states and tap handling
+	const renderMessageImage = (props: any) => {
+		const { currentMessage } = props;
+		const isPending = currentMessage.pending === true;
+		
+		return (
+			<TouchableOpacity 
+				style={styles.imageContainer}
+				onPress={() => currentMessage.image && handleImageTap(currentMessage.image)}
+				activeOpacity={0.8}
+			>
+				<MessageImage {...props} />
+				
+				{isPending && (
+					<View style={styles.imageOverlay}>
+						<ActivityIndicator size="large" color="#ffffff" />
+						<Text style={styles.uploadingText}>Uploading...</Text>
+					</View>
+				)}
+			</TouchableOpacity>
+		);
+	};
+
+	// Image Viewer Modal
+	const renderImageViewer = () => {
+		return (
+			<Modal
+				visible={imageViewerVisible}
+				transparent={true}
+				onRequestClose={() => setImageViewerVisible(false)}
+				animationType="fade"
+			>
+				<View style={styles.modalContainer}>
+					<TouchableOpacity 
+						style={styles.closeButton}
+						onPress={() => setImageViewerVisible(false)}
+					>
+						<Ionicons name="close" size={28} color="#fff" />
+					</TouchableOpacity>
+					
+					{selectedImage && (
+						<Image
+							source={{ uri: selectedImage }}
+							style={styles.fullImage}
+							resizeMode="contain"
+						/>
+					)}
+				</View>
+			</Modal>
+		);
+	};
+
 	if (!authUser) return null;
 
 	return (
@@ -341,6 +604,9 @@ const Page = () => {
 				marginBottom: insets.bottom,
 			}}
 		>
+			{/* Image Viewer Modal */}
+			{renderImageViewer()}
+		
 			<GiftedChat
 				messages={messages}
 				onSend={sendMessage}
@@ -357,6 +623,7 @@ const Page = () => {
 				alwaysShowSend={true}
 				showAvatarForEveryMessage={false}
 				renderUsernameOnMessage={true}
+				renderMessageImage={renderMessageImage}
 				renderBubble={(props) => {
 					const isCurrentUser = props.currentMessage.user._id == authUser?.id;
 					return (
@@ -457,6 +724,42 @@ const styles = StyleSheet.create({
 		fontSize: 16,
 		marginVertical: 4,
 		minHeight: 40,
+	},
+	imageContainer: {
+		position: 'relative',
+	},
+	imageOverlay: {
+		position: 'absolute',
+		top: 0,
+		left: 0,
+		right: 0,
+		bottom: 0,
+		backgroundColor: 'rgba(0,0,0,0.4)',
+		justifyContent: 'center',
+		alignItems: 'center',
+	},
+	uploadingText: {
+		color: '#ffffff',
+		marginTop: 10,
+		fontSize: 14,
+		fontWeight: '600',
+	},
+	modalContainer: {
+		flex: 1,
+		backgroundColor: 'rgba(0,0,0,0.9)',
+		justifyContent: 'center',
+		alignItems: 'center',
+	},
+	fullImage: {
+		width: Dimensions.get('window').width,
+		height: Dimensions.get('window').height * 0.8,
+	},
+	closeButton: {
+		position: 'absolute',
+		top: 40,
+		right: 20,
+		zIndex: 10,
+		padding: 10,
 	},
 });
 
