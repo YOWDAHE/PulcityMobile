@@ -7,10 +7,11 @@ import {
     Text,
     RefreshControl,
     Image,
+    TouchableOpacity,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import EventCard from "@/app/components/EventCard";
-import { getEvents, getFollowedEvents, getUpcomingEvents } from "@/actions/event.actions";
+import { getEvents, getFollowedEvents, getPopularEvents, getPublicPopularEvents, getUpcomingEvents } from "@/actions/event.actions";
 import { Event } from "@/models/event.model";
 import { useAuth } from "@/app/hooks/useAuth";
 import { Header } from "@/app/components/Header";
@@ -18,6 +19,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { StatusBar } from "expo-status-bar";
 import { useLocalSearchParams } from "expo-router";
 import Loading from "@/app/components/Loading";
+import { useRouter } from "expo-router"; // Add this import
+import PublicEventCard from "../components/PublicEventCard";
 
 type FeedType = 'all' | 'following' | 'upcoming';
 
@@ -58,34 +61,14 @@ export default function HomeScreen() {
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [feedType, setFeedType] = useState<FeedType>('all');
     const { from } = useLocalSearchParams<{ from: string }>();
+    const router = useRouter();
 
     const fetchEvents = async (type: FeedType = feedType) => {
         try {
             setIsLoading(true);
-            let fetchedEvents: Event[];
+            const res = await getPublicPopularEvents();
             
-            switch (type) {
-                case 'following':
-                    fetchedEvents = await getFollowedEvents();
-                    break;
-                case 'upcoming':
-                    fetchedEvents = await getUpcomingEvents();
-                    break;
-                default:
-                    fetchedEvents = await getEvents();
-                    fetchedEvents = fetchedEvents.filter((event) => event.id != 1 && event.id != 2);
-                    break;
-            }
-            
-            // Filter out past events
-            const currentDate = new Date();
-            fetchedEvents = fetchedEvents.filter((event) => {
-                if (!event.end_date) return true;
-                const eventDate = new Date(event.end_date);
-                return eventDate >= currentDate;
-            });
-            
-            setEvents(fetchedEvents);
+            setEvents(res);
             setError("");
         } catch (err) {
             setError(err instanceof Error ? err.message : "An error occurred");
@@ -99,7 +82,6 @@ export default function HomeScreen() {
         fetchEvents(feedType);
     }, [feedType]);
 
-    // Add new useEffect to handle login/register redirects
     useEffect(() => {
         if (from === 'login' || from === 'register') {
             fetchEvents(feedType);
@@ -132,9 +114,20 @@ export default function HomeScreen() {
     }
 
     return (
-        <View style={styles.container}>
+        <SafeAreaView style={styles.container}>
             <StatusBar style="dark" />
-            <Header feedType={feedType} onFeedTypeChange={setFeedType} />
+
+            {/* Header */}
+            <View style={styles.header}>
+                <Text style={styles.headerTitle}>Pulcity</Text>
+                <TouchableOpacity
+                    style={styles.loginButton}
+                    onPress={() => router.push("/(auth)/login")}
+                >
+                    <Text style={styles.loginButtonText}>Login</Text>
+                </TouchableOpacity>
+            </View>
+
             <ScrollView
                 refreshControl={
                     <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} />
@@ -143,14 +136,14 @@ export default function HomeScreen() {
             >
                 {events?.length ? (
                     events.map((event) => (
-                        <EventCard key={event.id} event={event} />
+                        <PublicEventCard key={event.id} event={event} />
                     )).reverse()
                 ) : (
-                    <EmptyState type={feedType} />
+                    <EmptyState type='all' />
                 )}
                 <View style={{ marginBottom: 60 }} />
             </ScrollView>
-        </View>
+        </SafeAreaView>
     );
 }
 
@@ -158,6 +151,35 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: "#fff",
+    },
+    header: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        paddingHorizontal: 20,
+        paddingTop: 18,
+        paddingBottom: 12,
+        backgroundColor: "#fff",
+        borderBottomWidth: 1,
+        borderBottomColor: "#f2f2f2",
+    },
+    headerTitle: {
+        fontSize: 24,
+        fontWeight: "bold",
+        color: "#222",
+        fontFamily: "poppinsBold",
+    },
+    loginButton: {
+        backgroundColor: "#00b4dd",
+        paddingHorizontal: 18,
+        paddingVertical: 7,
+        borderRadius: 8,
+    },
+    loginButtonText: {
+        color: "#fff",
+        fontWeight: "bold",
+        fontSize: 16,
+        fontFamily: "poppinsMedium",
     },
     scrollView: {
         flex: 1,

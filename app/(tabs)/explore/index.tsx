@@ -26,6 +26,7 @@ import React from "react";
 import { Header } from "@/app/components/Header";
 import * as Location from "expo-location";
 import { useFocusEffect, useLocalSearchParams } from "expo-router";
+import Loading from "@/app/components/Loading";
 
 export default function ExploreScreen() {
 	const { hashtag } = useLocalSearchParams();
@@ -95,8 +96,8 @@ export default function ExploreScreen() {
 	const filterPastEvents = (events: Event[]) => {
 		const currentDate = new Date();
 		return events.filter((event) => {
-			if (!event.start_date) return true;
-			const eventDate = new Date(event.start_date);
+			if (!event.end_date) return true;
+			const eventDate = new Date(event.end_date);
 			return eventDate >= currentDate;
 		});
 	};
@@ -225,11 +226,7 @@ export default function ExploreScreen() {
 
 	if (isLoading && search.trim() === "") {
 		return (
-			<View style={[styles.container, styles.loadingContainer]}>
-				{/* <Header title="Explore" /> */}
-				<ActivityIndicator size="large" color="#3B82F6" />
-				<Text style={styles.loadingText}>Loading events...</Text>
-			</View>
+			<Loading />
 		);
 	}
 

@@ -157,15 +157,18 @@ export const useAuth = () => {
       setTokens(null);
       setLocation(null);
 
-      router.replace("/(auth)/login");
+      router.replace("/(auth)/publicPage");
     } catch (error) {
       console.error("Failed to log out:", error);
     }
   };
 
+  const isAuthenticated = !!tokens?.access;
+
   return {
     user,
     tokens,
+    isAuthenticated,
     isLoading,
     location,
     saveAuthData,

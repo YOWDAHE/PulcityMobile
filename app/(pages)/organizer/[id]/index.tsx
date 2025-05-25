@@ -11,6 +11,7 @@ import {
 	RefreshControl,
 	BackHandler,
 	SafeAreaView,
+	ActivityIndicator,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
@@ -24,6 +25,7 @@ import { OrganizerPageInterface } from "@/models/organizer.model";
 import EventCard from "@/app/components/EventCard";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors } from "@/constants/Colors";
+import Loading from "@/app/components/Loading";
 
 const ProfilePage = () => {
 	const { id } = useLocalSearchParams();
@@ -42,6 +44,24 @@ const ProfilePage = () => {
 	// Store dynamic heights of each event card
 	const [eventHeights, setEventHeights] = useState<number[]>([]);
 
+	useEffect(() => {
+		const backAction = () => {
+			if (selectedEventIndex !== null) {
+				setSelectedEventIndex(null);
+				return true;
+			} else {
+				router.back();
+				return true;
+			}
+		};
+
+		const backHandler = BackHandler.addEventListener(
+			"hardwareBackPress",
+			backAction
+		);
+		return () => backHandler.remove();
+	}, [selectedEventIndex]);
+
 	// Calculate average rating from all events
 	const calculateAverageRating = (events: Event[]) => {
 		const validRatings = events.filter((event) => event.average_rating != null);
@@ -58,12 +78,17 @@ const ProfilePage = () => {
 		setLoading(true);
 		const res = await getOrganizerPageDetail(Number(id));
 		console.log("The detail: ", res);
+		setIsFollowing(res.organization.profile.is_following);
 		setDetails(res);
 		setLoading(false);
 	};
 
+	useEffect(() => {
+		fetchEvents();
+	}, []);
 	useFocusEffect(
 		useCallback(() => {
+			console.log("Fetching organizer details");
 			fetchEvents();
 		}, [])
 	);
@@ -126,16 +151,7 @@ const ProfilePage = () => {
 		}
 	}, [eventHeights, selectedEventIndex]);
 
-	if (details == undefined)
-		return (
-			<ScrollView
-				refreshControl={
-					<RefreshControl refreshing={loading} onRefresh={fetchEvents} />
-				}
-			>
-				<Text>Something went wrong !</Text>
-			</ScrollView>
-		);
+	if (details == undefined) return;
 
 	const averageRating = calculateAverageRating(details.events);
 
@@ -188,6 +204,8 @@ const ProfilePage = () => {
 			contentContainerStyle={styles.reviewsContainer}
 		/>
 	);
+
+	if (loading) return <Loading />;
 
 	return (
 		<SafeAreaView style={styles.container}>
@@ -253,7 +271,7 @@ const ProfilePage = () => {
 			</View>
 
 			<FlatList
-				data={details.events}
+				data={details.events.reverse()}
 				renderItem={({ item, index }) => (
 					<TouchableOpacity onPress={() => handleImagePress(index)}>
 						<Image

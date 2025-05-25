@@ -20,9 +20,10 @@ import { useAuth } from "../hooks/useAuth";
 import { signUp, verifyEmail, resendOtp } from "../../actions/auth.actions";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { userSignUpSchema } from "@/models/auth.model";
-import * as Linking from 'expo-linking';
-import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
+import * as Linking from "expo-linking";
+import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import { Image } from "react-native";
 
 type FormData = {
 	email: string;
@@ -32,7 +33,7 @@ type FormData = {
 	password: string;
 };
 
-const { width } = Dimensions.get('window');
+const { width } = Dimensions.get("window");
 
 export default function SignUp() {
 	const [isLoading, setIsLoading] = useState(false);
@@ -123,7 +124,7 @@ export default function SignUp() {
 		return (
 			<SafeAreaView style={styles.container}>
 				<LinearGradient
-					colors={['#3B82F6', '#1E40AF']}
+					colors={["#6fb8e1", "#1E40AF"]}
 					style={styles.gradientBackground}
 				>
 					<KeyboardAvoidingView
@@ -154,7 +155,8 @@ export default function SignUp() {
 										<View style={styles.form}>
 											{isVerificationMode && (
 												<Text style={styles.infoText}>
-													We've sent a verification code to {email}. Please enter the code below to verify your account.
+													We've sent a verification code to {email}. Please enter the code
+													below to verify your account.
 												</Text>
 											)}
 
@@ -163,7 +165,12 @@ export default function SignUp() {
 												<View style={styles.inputContainer}>
 													<Text style={styles.label}>Verification Code</Text>
 													<View style={styles.inputWrapper}>
-														<Ionicons name="key-outline" size={20} color="#666" style={styles.inputIcon} />
+														<Ionicons
+															name="key-outline"
+															size={20}
+															color="#666"
+															style={styles.inputIcon}
+														/>
 														<TextInput
 															style={styles.input}
 															placeholder="Enter verification code"
@@ -180,7 +187,12 @@ export default function SignUp() {
 												<View style={styles.inputContainer}>
 													<Text style={styles.label}>Email</Text>
 													<View style={styles.inputWrapper}>
-														<Ionicons name="mail-outline" size={20} color="#666" style={styles.inputIcon} />
+														<Ionicons
+															name="mail-outline"
+															size={20}
+															color="#666"
+															style={styles.inputIcon}
+														/>
 														<TextInput
 															style={styles.input}
 															placeholder="Enter your email"
@@ -213,7 +225,12 @@ export default function SignUp() {
 														<Text style={styles.buttonText}>
 															{isVerificationMode ? "Verify Code" : "Send Verification Code"}
 														</Text>
-														<Ionicons name="arrow-forward" size={20} color="#fff" style={styles.buttonIcon} />
+														<Ionicons
+															name="arrow-forward"
+															size={20}
+															color="#fff"
+															style={styles.buttonIcon}
+														/>
 													</>
 												)}
 											</Pressable>
@@ -238,7 +255,7 @@ export default function SignUp() {
 	return (
 		<SafeAreaView style={styles.container}>
 			<LinearGradient
-				colors={['#3B82F6', '#1E40AF']}
+				colors={["#6fb8e1", "#1E40AF"]}
 				style={styles.gradientBackground}
 			>
 				<KeyboardAvoidingView
@@ -254,7 +271,12 @@ export default function SignUp() {
 							<View style={styles.innerContainer}>
 								<View style={styles.header}>
 									<View style={styles.logoContainer}>
-										<Ionicons name="ticket-outline" size={48} color="#ffffff" />
+										{/* <Ionicons name="ticket-outline" size={48} color="#ffffff" /> */}
+										<Image
+											style={{ width: "100%", height: "100%" }}
+											resizeMode="cover"
+											source={require("../../assets/images/pulcity_logo.jpg")}
+										/>
 									</View>
 									<Text style={styles.appName}>Pulcity</Text>
 									<Text style={styles.subtitle}>Join the Community</Text>
@@ -273,8 +295,18 @@ export default function SignUp() {
 											render={({ field: { onChange, value, onBlur } }) => (
 												<View style={styles.inputContainer}>
 													<Text style={styles.label}>Email</Text>
-													<View style={[styles.inputWrapper, errors.email && styles.inputWrapperError]}>
-														<Ionicons name="mail-outline" size={20} color="#666" style={styles.inputIcon} />
+													<View
+														style={[
+															styles.inputWrapper,
+															errors.email && styles.inputWrapperError,
+														]}
+													>
+														<Ionicons
+															name="mail-outline"
+															size={20}
+															color="#666"
+															style={styles.inputIcon}
+														/>
 														<TextInput
 															style={styles.input}
 															placeholder="Enter your email"
@@ -299,8 +331,18 @@ export default function SignUp() {
 											render={({ field: { onChange, value, onBlur } }) => (
 												<View style={styles.inputContainer}>
 													<Text style={styles.label}>Username</Text>
-													<View style={[styles.inputWrapper, errors.username && styles.inputWrapperError]}>
-														<Ionicons name="person-outline" size={20} color="#666" style={styles.inputIcon} />
+													<View
+														style={[
+															styles.inputWrapper,
+															errors.username && styles.inputWrapperError,
+														]}
+													>
+														<Ionicons
+															name="person-outline"
+															size={20}
+															color="#666"
+															style={styles.inputIcon}
+														/>
 														<TextInput
 															style={styles.input}
 															placeholder="Choose a username"
@@ -325,8 +367,18 @@ export default function SignUp() {
 												render={({ field: { onChange, value, onBlur } }) => (
 													<View style={[styles.inputContainer, styles.nameInput]}>
 														<Text style={styles.label}>First Name</Text>
-														<View style={[styles.inputWrapper, errors.first_name && styles.inputWrapperError]}>
-															<Ionicons name="person-outline" size={20} color="#666" style={styles.inputIcon} />
+														<View
+															style={[
+																styles.inputWrapper,
+																errors.first_name && styles.inputWrapperError,
+															]}
+														>
+															<Ionicons
+																name="person-outline"
+																size={20}
+																color="#666"
+																style={styles.inputIcon}
+															/>
 															<TextInput
 																style={styles.input}
 																placeholder="First name"
@@ -350,8 +402,18 @@ export default function SignUp() {
 												render={({ field: { onChange, value, onBlur } }) => (
 													<View style={[styles.inputContainer, styles.nameInput]}>
 														<Text style={styles.label}>Last Name</Text>
-														<View style={[styles.inputWrapper, errors.last_name && styles.inputWrapperError]}>
-															<Ionicons name="person-outline" size={20} color="#666" style={styles.inputIcon} />
+														<View
+															style={[
+																styles.inputWrapper,
+																errors.last_name && styles.inputWrapperError,
+															]}
+														>
+															<Ionicons
+																name="person-outline"
+																size={20}
+																color="#666"
+																style={styles.inputIcon}
+															/>
 															<TextInput
 																style={styles.input}
 																placeholder="Last name"
@@ -376,8 +438,18 @@ export default function SignUp() {
 											render={({ field: { onChange, value, onBlur } }) => (
 												<View style={styles.inputContainer}>
 													<Text style={styles.label}>Password</Text>
-													<View style={[styles.inputWrapper, errors.password && styles.inputWrapperError]}>
-														<Ionicons name="lock-closed-outline" size={20} color="#666" style={styles.inputIcon} />
+													<View
+														style={[
+															styles.inputWrapper,
+															errors.password && styles.inputWrapperError,
+														]}
+													>
+														<Ionicons
+															name="lock-closed-outline"
+															size={20}
+															color="#666"
+															style={styles.inputIcon}
+														/>
 														<TextInput
 															style={styles.input}
 															placeholder="Create a password"
@@ -388,14 +460,14 @@ export default function SignUp() {
 															onChangeText={onChange}
 															onBlur={onBlur}
 														/>
-														<Pressable 
+														<Pressable
 															onPress={() => setShowPassword(!showPassword)}
 															style={styles.passwordToggle}
 														>
-															<Ionicons 
-																name={showPassword ? "eye-off-outline" : "eye-outline"} 
-																size={20} 
-																color="#666" 
+															<Ionicons
+																name={showPassword ? "eye-off-outline" : "eye-outline"}
+																size={20}
+																color="#666"
 															/>
 														</Pressable>
 													</View>
@@ -423,7 +495,12 @@ export default function SignUp() {
 											) : (
 												<>
 													<Text style={styles.buttonText}>Create Account</Text>
-													<Ionicons name="arrow-forward" size={20} color="#fff" style={styles.buttonIcon} />
+													<Ionicons
+														name="arrow-forward"
+														size={20}
+														color="#fff"
+														style={styles.buttonIcon}
+													/>
 												</>
 											)}
 										</Pressable>
@@ -457,7 +534,7 @@ const styles = StyleSheet.create({
 	},
 	gradientBackground: {
 		flex: 1,
-		width: '100%',
+		width: "100%",
 	},
 	keyboardAvoidingView: {
 		flex: 1,
@@ -467,41 +544,42 @@ const styles = StyleSheet.create({
 	},
 	innerContainer: {
 		flex: 1,
-		justifyContent: 'space-between',
+		justifyContent: "space-between",
 	},
 	header: {
-		paddingTop: Platform.OS === 'android' ? 40 : 20,
+		paddingTop: Platform.OS === "android" ? 40 : 20,
 		paddingBottom: 20,
-		alignItems: 'center',
+		alignItems: "center",
 	},
 	logoContainer: {
 		width: 80,
 		height: 80,
 		borderRadius: 20,
-		backgroundColor: 'rgba(255, 255, 255, 0.2)',
-		justifyContent: 'center',
-		alignItems: 'center',
+		backgroundColor: "rgba(255, 255, 255, 0.2)",
+		justifyContent: "center",
+		alignItems: "center",
 		marginBottom: 16,
+		overflow: "hidden",
 	},
 	appName: {
 		fontSize: 32,
-		fontWeight: '700',
-		color: '#ffffff',
+		fontWeight: "700",
+		color: "#ffffff",
 		marginBottom: 8,
 	},
 	subtitle: {
 		fontSize: 16,
-		color: 'rgba(255, 255, 255, 0.8)',
+		color: "rgba(255, 255, 255, 0.8)",
 		letterSpacing: 0.5,
 	},
 	formContainer: {
-		backgroundColor: '#ffffff',
+		backgroundColor: "#ffffff",
 		borderTopLeftRadius: 30,
 		borderTopRightRadius: 30,
 		paddingTop: 30,
-		paddingBottom: Platform.OS === 'ios' ? 40 : 24,
+		paddingBottom: Platform.OS === "ios" ? 40 : 24,
 		paddingHorizontal: 24,
-		shadowColor: '#000',
+		shadowColor: "#000",
 		shadowOffset: { width: 0, height: -3 },
 		shadowOpacity: 0.1,
 		shadowRadius: 6,
@@ -512,20 +590,20 @@ const styles = StyleSheet.create({
 	},
 	formTitle: {
 		fontSize: 24,
-		fontWeight: '700',
-		color: '#333',
+		fontWeight: "700",
+		color: "#333",
 		marginBottom: 8,
 	},
 	formSubtitle: {
 		fontSize: 16,
-		color: '#666',
+		color: "#666",
 	},
 	form: {
 		gap: 16,
 	},
 	nameRow: {
-		flexDirection: 'row',
-		justifyContent: 'space-between',
+		flexDirection: "row",
+		justifyContent: "space-between",
 	},
 	nameInput: {
 		flex: 0.48,
@@ -535,22 +613,22 @@ const styles = StyleSheet.create({
 	},
 	label: {
 		fontSize: 14,
-		fontWeight: '600',
-		color: '#333',
+		fontWeight: "600",
+		color: "#333",
 		marginLeft: 4,
 	},
 	inputWrapper: {
-		flexDirection: 'row',
-		alignItems: 'center',
+		flexDirection: "row",
+		alignItems: "center",
 		height: 56,
 		borderWidth: 1,
-		borderColor: '#e0e0e0',
+		borderColor: "#e0e0e0",
 		borderRadius: 12,
-		backgroundColor: '#f9f9f9',
+		backgroundColor: "#f9f9f9",
 		paddingHorizontal: 16,
 	},
 	inputWrapperError: {
-		borderColor: '#ff4444',
+		borderColor: "#ff4444",
 		borderWidth: 1.5,
 	},
 	inputIcon: {
@@ -559,79 +637,79 @@ const styles = StyleSheet.create({
 	input: {
 		flex: 1,
 		fontSize: 16,
-		color: '#333',
+		color: "#333",
 	},
 	passwordToggle: {
 		padding: 8,
 	},
 	infoText: {
 		fontSize: 16,
-		color: '#666',
+		color: "#666",
 		textAlign: "center",
 		lineHeight: 22,
 		marginBottom: 12,
 	},
 	errorText: {
-		color: '#ff4444',
+		color: "#ff4444",
 		fontSize: 13,
 		marginLeft: 4,
 		marginTop: 4,
 	},
 	errorContainer: {
-		flexDirection: 'row',
-		alignItems: 'center',
-		backgroundColor: '#FFE5E5',
+		flexDirection: "row",
+		alignItems: "center",
+		backgroundColor: "#FFE5E5",
 		padding: 10,
 		borderRadius: 8,
 		marginBottom: 10,
 	},
 	button: {
 		height: 56,
-		backgroundColor: '#3B82F6',
+		backgroundColor: "#6fb8e1",
 		borderRadius: 12,
-		justifyContent: 'center',
-		alignItems: 'center',
+		justifyContent: "center",
+		alignItems: "center",
 		marginTop: 12,
-		flexDirection: 'row',
+		flexDirection: "row",
 	},
 	buttonDisabled: {
 		opacity: 0.7,
 	},
 	buttonText: {
-		color: '#fff',
+		color: "#fff",
 		fontSize: 16,
-		fontWeight: '600',
+		fontWeight: "600",
 	},
 	buttonIcon: {
 		marginLeft: 8,
 	},
 	divider: {
-		flexDirection: 'row',
-		alignItems: 'center',
+		flexDirection: "row",
+		alignItems: "center",
 		marginVertical: 16,
 	},
 	dividerLine: {
 		flex: 1,
 		height: 1,
-		backgroundColor: '#e0e0e0',
+		backgroundColor: "#e0e0e0",
 	},
 	dividerText: {
-		color: '#666',
+		color: "#666",
 		fontSize: 14,
 		marginHorizontal: 12,
 	},
 	secondaryButton: {
 		height: 56,
 		borderWidth: 1,
-		borderColor: '#3B82F6',
+		borderColor: "#3B82F6",
 		borderRadius: 12,
-		justifyContent: 'center',
-		alignItems: 'center',
-		backgroundColor: 'transparent',
+		justifyContent: "center",
+		alignItems: "center",
+		backgroundColor: "transparent",
 	},
 	secondaryButtonText: {
-		color: '#3B82F6',
+		color: "#3B82F6",
 		fontSize: 16,
-		fontWeight: '600',
+		fontWeight: "600",
 	},
 });

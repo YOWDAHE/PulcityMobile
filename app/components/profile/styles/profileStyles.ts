@@ -267,6 +267,7 @@ export const styles = StyleSheet.create({
     fontFamily: "Poppins_600SemiBold",
     color: "#111827",
     marginBottom: 0,
+    width: 220,
   },
 
   organizer: {

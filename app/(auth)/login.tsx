@@ -64,7 +64,7 @@ export default function Login() {
 
 			// Save auth data and wait for it to complete
 			await saveAuthData(verifiedUser);
-			
+
 			// Add a small delay to ensure state is updated before navigation
 			setTimeout(() => {
 				router.replace("/(tabs)/home?from=login");
@@ -79,7 +79,7 @@ export default function Login() {
 	return (
 		<SafeAreaView style={styles.container}>
 			<LinearGradient
-				colors={["#3B82F6", "#1E40AF"]}
+				colors={["#6fb8e1", "#1E40AF"]}
 				style={styles.gradientBackground}
 			>
 				<KeyboardAvoidingView
@@ -95,7 +95,12 @@ export default function Login() {
 							<View style={styles.innerContainer}>
 								<View style={styles.header}>
 									<View style={styles.logoContainer}>
-										<Ionicons name="ticket-outline" size={48} color="#ffffff" />
+										{/* <Ionicons name="ticket-outline" size={48} color="#ffffff" /> */}
+										<Image
+											style={{ width: "100%", height: "100%" }}
+											resizeMode="cover"
+											source={require("../../assets/images/pulcity_logo.jpg")}
+										/>
 									</View>
 									<Text style={styles.appName}>Pulcity</Text>
 									<Text style={styles.subtitle}>Discover Amazing Events</Text>
@@ -271,10 +276,11 @@ const styles = StyleSheet.create({
 		width: 80,
 		height: 80,
 		borderRadius: 20,
-		backgroundColor: "rgba(255, 255, 255, 0.2)",
+		backgroundColor: "#6fb8e1",
 		justifyContent: "center",
 		alignItems: "center",
 		marginBottom: 16,
+		overflow: "hidden",
 	},
 	appName: {
 		fontSize: 32,
@@ -374,7 +380,7 @@ const styles = StyleSheet.create({
 	},
 	button: {
 		height: 56,
-		backgroundColor: "#3B82F6",
+		backgroundColor: "#6fb8e1",
 		borderRadius: 12,
 		justifyContent: "center",
 		alignItems: "center",

@@ -34,7 +34,7 @@ const EventCard = ({ event, showDots = true }: EventCardProps) => {
 	const [isLiked, setIsLiked] = useState(event.liked);
 	const [loading, setLoading] = useState(false);
 
-	const isEventPassed = new Date(event.start_date) < new Date();
+	const isEventPassed = new Date(event.end_date) < new Date();
 
 	const handleFollow = async () => {
 		try {
@@ -100,13 +100,13 @@ const EventCard = ({ event, showDots = true }: EventCardProps) => {
 
 	const getEventRating = (event: Event): number | null => {
 		if (!event.rating) return null;
-		
-		if (typeof event.rating === 'number') return event.rating;
-		
-		if (typeof event.rating === 'object' && 'value' in event.rating) {
+
+		if (typeof event.rating === "number") return event.rating;
+
+		if (typeof event.rating === "object" && "value" in event.rating) {
 			return event.rating.value;
 		}
-		
+
 		return null;
 	};
 
@@ -171,10 +171,12 @@ const EventCard = ({ event, showDots = true }: EventCardProps) => {
 										borderWidth: 1,
 									}}
 								>
-									<TouchableOpacity onPress={() => {
-										router.push(`/organizer/${event.organizer.id}`);
-										setActionsShown(false);
-									}}>
+									<TouchableOpacity
+										onPress={() => {
+											router.push(`/organizer/${event.organizer.id}`);
+											setActionsShown(false);
+										}}
+									>
 										<Text>View Page</Text>
 									</TouchableOpacity>
 									<View
@@ -276,12 +278,12 @@ const EventCard = ({ event, showDots = true }: EventCardProps) => {
 						onPress={() => {
 							handleBookmark();
 							event.bookmarked = !event.bookmarked;
-							if (event.bookmarks_count == undefined) return;
-							if (event.bookmarked) {
-								event.bookmarks_count += 1;
-							} else {
-								event.bookmarks_count -= 1;
-							}
+							// if (event.bookmarks_count == undefined) return;
+							// if (event.bookmarked) {
+							// 	event.bookmarks_count += 1;
+							// } else {
+							// 	event.bookmarks_count -= 1;
+							// }
 						}}
 						style={styles.statItem}
 					>
@@ -290,20 +292,12 @@ const EventCard = ({ event, showDots = true }: EventCardProps) => {
 							size={24}
 							color="black"
 						/>
-						{/* <Ionicons name="bookmark-outline" size={20} color="black" /> */}
-						{event.bookmarks_count !== undefined &&
-							event.bookmarks_count !== null &&
-							event.bookmarks_count > 1 && (
-								<Text style={styles.statText}>{event.bookmarks_count}</Text>
-							)}
 					</TouchableOpacity>
 
 					{event.rated && (
 						<View style={styles.statItem}>
 							<Ionicons name="star" size={20} color="#FFBB0A" />
-							<Text style={styles.statText}>
-								{getEventRating(event)}
-							</Text>
+							<Text style={styles.statText}>{getEventRating(event)}</Text>
 						</View>
 					)}
 				</View>
@@ -330,47 +324,72 @@ const EventCard = ({ event, showDots = true }: EventCardProps) => {
 			{/* Event Details */}
 			<View style={styles.contentContainer}>
 				<Text style={styles.title}>{event.title}</Text>
-				<View style={styles.description}>
-					<TiptapRenderer htmlContent={event.description} />
-					<Pressable onPress={() => router.push(`/event/${event.id}`)}>
+				<Pressable onPress={() => {
+					console.log("Going to event :", `/event/${event.id}`);
+					router.push(`/event/${event.id}`)
+				}}>
+					<View style={styles.description}>
+						<TiptapRenderer htmlContent={event.description} />
 						<Text>... more</Text>
-					</Pressable>
-				</View>
+					</View>
+				</Pressable>
 
 				{/* Only show ticket button for future events */}
-				{!isEventPassed && (
-					<TouchableOpacity 
-						style={[
-							styles.ticketButton,
-							event.has_attended && styles.rateButton
-						]}
-						onPress={() => 
-							event.has_attended 
-								? router.push({
-									pathname: "/(pages)/rate/[id]/index",
-									params: { id: event.id }
-								}) 
-								: router.push(`/ticket/${event.id}`)
-						}
+				{!isEventPassed && !event.has_attended && event.has_ticket && (
+					<TouchableOpacity
+						style={[styles.ticketButton]}
+						onPress={() => router.push(`/ticket/${event.id}`)}
 					>
-						<Text style={[
-							styles.ticketButtonText,
-							event.has_attended && styles.rateButtonText
-						]}>
-							{event.has_attended ? "Rate this event" : "Get Your Tickets here"}
-						</Text>
-						<Ionicons 
-							name="chevron-forward" 
-							color={event.has_attended ? "#000000" : "#FFFFFF"} 
+						<Text style={[styles.ticketButtonText]}>Get Another Tickets</Text>
+						<Ionicons name="chevron-forward" color="#000000" />
+					</TouchableOpacity>
+				)}
+				{!isEventPassed && !event.has_attended && !event.has_ticket && (
+					<TouchableOpacity
+						style={[styles.ticketButton]}
+						onPress={() => router.push(`/ticket/${event.id}`)}
+					>
+						<Text style={[styles.ticketButtonText]}>Get Your Tickets here</Text>
+						<Ionicons
+							name="chevron-forward"
+							color={event.has_attended ? "#000000" : "#FFFFFF"}
 						/>
 					</TouchableOpacity>
 				)}
-
+				{!isEventPassed && event.has_attended && (
+					<TouchableOpacity
+						style={[styles.ticketButton]}
+						onPress={() => router.push(`/ticket/${event.id}`)}
+					>
+						<Text style={[styles.ticketButtonText]}>Get More Tickets here</Text>
+						<Ionicons
+							name="chevron-forward"
+							color={event.has_attended ? "#000000" : "#FFFFFF"}
+						/>
+					</TouchableOpacity>
+				)}
+				{event.has_attended && !event.rated && (
+					<TouchableOpacity
+						style={[styles.ticketButton, event.has_attended && styles.rateButton]}
+						onPress={() =>
+							router.push({
+								pathname: "/rate/[id]",
+								params: { id: event.id },
+							})
+						}
+					>
+						<Text style={[styles.rateButtonText]}>Rate the event</Text>
+						<Ionicons
+							name="chevron-forward"
+							color={event.has_attended ? "#000000" : "#FFFFFF"}
+						/>
+					</TouchableOpacity>
+				)}
 				{event.hashtags && (
 					<View style={{ flexDirection: "row", gap: 6, flexWrap: "wrap" }}>
 						{event.hashtags.map((el) => {
 							return (
-								<TouchableOpacity 
+								<TouchableOpacity
 									key={el.name}
 									onPress={() => navigateToHashtagSearch(el.name)}
 								>

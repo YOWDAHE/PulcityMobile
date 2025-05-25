@@ -146,7 +146,7 @@ const styles = StyleSheet.create({
 	contentContainer: {
 		flexDirection: "column",
 		justifyContent: "space-between",
-		height: "100%",
+		// height: "100%",
 	},
 	title: {
 		fontSize: 16,

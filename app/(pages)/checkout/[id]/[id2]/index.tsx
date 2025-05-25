@@ -219,9 +219,10 @@ const styles = StyleSheet.create({
 		backgroundColor: "white",
 		borderRadius: 16,
 		padding: 16,
+		paddingHorizontal: 24,
 		marginBottom: 60,
 		justifyContent: "space-between",
-		height: 600,
+		height: 650,
 		position: "relative",
 	},
 	ticketContent: {
@@ -251,6 +252,7 @@ const styles = StyleSheet.create({
 	qrCodeContainer: {
 		alignItems: "center",
 		marginTop: 16,
+		paddingBottom: 32,
 		position: "relative",
 	},
 });

@@ -163,3 +163,27 @@ export const getUserReviews = async (): Promise<any[]> => {
         }
     }
 }; 
+
+/**
+ * Function to delete a user's rating for an event
+ * @param eventId - The ID of the event
+ * @returns Promise resolving to void
+ * @throws Error if the API request fails
+ */
+export const deleteRating = async (eventId: number): Promise<void> => {
+    try {
+        await axiosInstance.delete(`/events/${eventId}/rating/me/`);
+    } catch (error) {
+        if (axios.isAxiosError(error) && error.response) {
+            const apiErrors = error.response.data;
+            console.error("API validation errors:", apiErrors);
+            throw new Error(JSON.stringify(apiErrors));
+        } else if (error instanceof Error) {
+            console.error("Validation or runtime error:", error.message);
+            throw error;
+        } else {
+            console.error("Unexpected error:", error);
+            throw error;
+        }
+    }
+};

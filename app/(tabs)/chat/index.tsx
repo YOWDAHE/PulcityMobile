@@ -7,6 +7,7 @@ import { getCommunities, getCommunityById } from "@/actions/community.actions";
 import { useFocusEffect } from "expo-router";
 import { Community } from "@/models/community.model";
 import { Ionicons } from "@expo/vector-icons";
+import Loading from "@/app/components/Loading";
 
 // Empty state component
 const EmptyState = () => (
@@ -21,8 +22,9 @@ const EmptyState = () => (
 
 const Page = () => {
 	const [groups, setGroups] = useState<Community[]>([]);
-	const [losding, setLoading] = useState(false);
+	const [loading, setLoading] = useState(false);
 	const fetchCommunity = async () => {
+		setLoading(true);
 		const groups = await getCommunities();
 		const threeDaysAgo = new Date();
 		threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
@@ -30,13 +32,14 @@ const Page = () => {
 			groups?.filter((group) => new Date(group.event.end_date) > threeDaysAgo) ??
 			[];
 		setGroups(groups!);
-		console.log("Groups: ", groups);
+		setLoading(false);
 	};
 	useFocusEffect(
 		useCallback(() => {
 			fetchCommunity();
 		}, [])
 	);
+	if(loading) return <Loading />;
 	return (
 		<View style={styles.container}>
 			<View style={styles.header}>

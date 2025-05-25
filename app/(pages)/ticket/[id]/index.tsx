@@ -18,6 +18,8 @@ import { Ticket } from "@/models/ticket.model";
 import { getTicketsByEventId } from "@/actions/ticket.actions";
 import { paymentInit } from "@/actions/payment.actions";
 import * as WebBrowser from "expo-web-browser";
+import Loading from "@/app/components/Loading";
+import { WebView } from "react-native-webview";
 
 interface BuyTicketsScreenProps {
 	onBack?: () => void;
@@ -68,6 +70,8 @@ const BuyTicketsScreen: React.FC<BuyTicketsScreenProps> = ({
 		}));
 	};
 
+	const [webViewUrl, setWebViewUrl] = useState<string | null>(null);
+
 	return (
 		<View style={styles.container}>
 			<ScrollView
@@ -77,7 +81,7 @@ const BuyTicketsScreen: React.FC<BuyTicketsScreenProps> = ({
 				<HeaderComponent title="Buy Tickets" onBack={() => router.back()} />
 
 				{isLoading ? (
-					<Text>Loading...</Text>
+					<Loading />
 				) : error ? (
 					<Text>{error}</Text>
 				) : (
@@ -154,7 +158,7 @@ const BuyTicketsScreen: React.FC<BuyTicketsScreenProps> = ({
 						try {
 							const paymentResponse = await paymentInit({ tickets: finalTickets });
 							const checkoutUrl = paymentResponse.detail.data.checkout_url;
-							await WebBrowser.openBrowserAsync(checkoutUrl);
+							setWebViewUrl(checkoutUrl);
 						} catch (error) {
 							Alert.alert(
 								"Payment Error",
@@ -166,6 +170,15 @@ const BuyTicketsScreen: React.FC<BuyTicketsScreenProps> = ({
 					customStyles={styles.continueButton}
 				/>
 			</View>
+
+			{webViewUrl && (
+				<Modal visible transparent={false} animationType="slide">
+					<View style={{ flex: 1 }}>
+						<Button title="Close" onPress={() => setWebViewUrl(null)} />
+						<WebView source={{ uri: webViewUrl }} style={{ flex: 1 }} />
+					</View>
+				</Modal>
+			)}
 		</View>
 	);
 };

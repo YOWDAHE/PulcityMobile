@@ -17,6 +17,7 @@ import { unfollowOrganizer } from "@/actions/organizer.actions";
 import { ScrollView } from "react-native-gesture-handler";
 import { RefreshControl } from "react-native";
 import { router } from "expo-router";
+import Loading from "@/app/components/Loading";
 
 export default function FollowingTab() {
 	const { tokens } = useAuth();
@@ -61,7 +62,7 @@ export default function FollowingTab() {
 	return (
 		<ScrollView refreshControl={<RefreshControl refreshing={isLoading} onRefresh={fetchFollowing} />} style={styles.container}>
 			{isLoading ? (
-				<ActivityIndicator size="large" color="#3B82F6" />
+				<Loading />
 			) : error ? (
 				<Text style={styles.errorText}>{error}</Text>
 			) : followingOrganizers.length > 0 ? (

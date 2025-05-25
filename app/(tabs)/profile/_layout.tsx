@@ -144,12 +144,12 @@ export default function ProfileTabs() {
 const styles = StyleSheet.create({
 	container: {
 		flex: 1,
-		backgroundColor: "#3B82F6",
+		// backgroundColor: "#3B82F6",
 	},
 	header: {
 		paddingHorizontal: 16,
 		paddingVertical: 20,
-		backgroundColor: "#3B82F6",
+		backgroundColor: "#6fb8e1",
 		flexDirection: "column",
 		alignItems: "center",
 		justifyContent: "center",

@@ -52,7 +52,7 @@ const TicketCard: React.FC<TicketCardProps> = ({
 			<Image
 				source={require("@/assets/images/ticketPatterns.png")}
 				style={styles.backgroundImage}
-				resizeMode="contain"
+				resizeMode="cover"
 			/>
 			<View style={styles.card}>
 				{/* Ticket Type */}
@@ -132,7 +132,7 @@ const styles = StyleSheet.create({
 		borderRadius: 16,
 		borderWidth: 0,
 		borderColor: "white",
-		padding: 6,
+		// padding: 6,
 		marginBottom: 16,
 		backgroundColor: "transparent",
 		position: "relative",
@@ -143,8 +143,9 @@ const styles = StyleSheet.create({
 		borderColor: "gray",
 	},
 	card: {
-		width: "100%",
+		// width: "100%",
 		padding: 16,
+		margin: 6,
 		borderRadius: 12,
 		borderColor: "#E5E7EB",
 		borderWidth: 2,
@@ -222,10 +223,8 @@ const styles = StyleSheet.create({
 	},
 	backgroundImage: {
 		position: "absolute",
-		top: 0,
-		left: 0,
-		right: 0,
-		bottom: 0,
+		width: "100%",
+		height: "100%",
 		borderRadius: 12,
 	},
 });

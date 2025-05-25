@@ -1,4 +1,4 @@
-import axios from "axios";
+// import axios from "axios";
 import { z } from "zod";
 import { EventSchema, Event } from "../models/event.model";
 import { useAuth } from "@/app/hooks/useAuth";
@@ -139,6 +139,24 @@ export const bookmarkEvent = async (eventId: NumberArray): Promise<any> => {
 export const getPopularEvents = async (): Promise<Event[]> => {
   try {
       const response = await axiosInstance.get('/events/filter/popular/');
+      console.log(response.data.results)
+      const events = response.data.results.map((event: unknown) => EventSchema.parse(event));
+    
+    return events;
+  } catch (error) {
+    console.error('Error fetching popular events:', error);
+    throw error;
+  }
+};
+
+/**
+ * Fetches popular events from the API
+ * @returns Promise resolving to an array of popular events
+ * @throws Error if the API request fails or validation fails
+ */
+export const getPublicPopularEvents = async (): Promise<Event[]> => {
+  try {
+    const response = await axios.get('https://www.mindahun.pro.et/api/v1/events/filter/popular/');
       console.log(response.data.results)
       const events = response.data.results.map((event: unknown) => EventSchema.parse(event));
     
@@ -301,6 +319,52 @@ export const getAttendedEvents = async (): Promise<Event[]> => {
     const events = z.array(EventSchema).parse(attendedEvents);
     
     return attendedEvents;
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response) {
+      const apiErrors = error.response.data;
+      console.error("API validation errors:", apiErrors);
+      throw new Error(JSON.stringify(apiErrors));
+    } else if (error instanceof Error) {
+      console.error("Validation or runtime error:", error.message);
+      throw error;
+    } else {
+      console.error("Unexpected error:", error);
+      throw error;
+    }
+  }
+};
+
+/**
+ * Fetches a paginated list of ratings for a specific event
+ * @param eventId - The ID of the event
+ * @param page - The page number (default: 1)
+ * @param pageSize - The number of ratings per page (default: 10)
+ * @returns Promise resolving to an object with results, count, next, and previous
+ * @throws Error if the API request fails or validation fails
+ */
+import { RatingSchema, Rating } from "@/models/rating.model";
+import axios from "axios";
+
+export const getEventRatingsPaginated = async (
+  eventId: number,
+  page: number = 1,
+  pageSize: number = 10
+): Promise<{
+  results: Rating[];
+  count: number;
+  next: string | null;
+  previous: string | null;
+}> => {
+  try {
+    const response = await axiosInstance.get(
+      `/events/${eventId}/ratings/?page=${page}&page_size=${pageSize}`
+    );
+    return {
+      results: response.data.results.map((r: unknown) => RatingSchema.parse(r)),
+      count: response.data.count,
+      next: response.data.next,
+      previous: response.data.previous,
+    };
   } catch (error) {
     if (axios.isAxiosError(error) && error.response) {
       const apiErrors = error.response.data;

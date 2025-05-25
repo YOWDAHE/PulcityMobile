@@ -1,5 +1,10 @@
 import React, { useCallback } from "react";
-import { View, StyleSheet, RefreshControl, ActivityIndicator } from "react-native";
+import {
+	View,
+	StyleSheet,
+	RefreshControl,
+	ActivityIndicator,
+} from "react-native";
 import { savedEvents } from "@/app/components/profile/constants/mockData";
 import SavedEventCard from "@/app/components/profile/_components/SavedEventCard";
 import EmptyState from "@/app/components/shared/EmptyState";
@@ -8,6 +13,7 @@ import { useFocusEffect } from "expo-router";
 import { fetchSavedEvent } from "@/actions/user.actions";
 import { Event } from "@/models/event.model";
 import { ScrollView } from "react-native-gesture-handler";
+import Loading from "@/app/components/Loading";
 
 export default function SavedTab() {
 	const [loading, setIsLoading] = React.useState(false);
@@ -31,25 +37,21 @@ export default function SavedTab() {
 		useCallback(() => {
 			getBookmarks();
 		}, [])
-    );
-    const onRefresh = async () => {
-        getBookmarks();
-    }
+	);
+	const onRefresh = async () => {
+		getBookmarks();
+	};
 
-    if (loading) (
-        <View style={{flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center'}}><ActivityIndicator size={50} /></View>
-    )
+	if (loading) return <Loading />;
 	return (
-		<ScrollView style={styles.container} refreshControl={<RefreshControl refreshing={loading} onRefresh={onRefresh} />}>
-			{savedEvents.length > 0 ? (
-				savedEvents.map((event) => <EventCard key={event.id} event={event} />)
-			) : (
-				<EmptyState
-					icon="bookmark-border"
-					title="No saved items yet"
-					subtitle="Save events you're interested in to find them here later"
-				/>
-			)}
+		<ScrollView
+			style={styles.container}
+			refreshControl={
+				<RefreshControl refreshing={loading} onRefresh={onRefresh} />
+			}
+		>
+			{savedEvents.length > 0 &&
+				savedEvents.map((event) => <EventCard key={event.id} event={event} />)}
 		</ScrollView>
 	);
 }

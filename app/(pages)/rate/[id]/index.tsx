@@ -9,9 +9,14 @@ import {
 	Alert,
 	ScrollView,
 } from "react-native";
-import { router, useLocalSearchParams } from "expo-router";
+import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { createRating, getUserRating, updateRating } from "@/actions/rating.actions";
+import {
+	createRating,
+	getUserRating,
+	updateRating,
+	deleteRating,
+} from "@/actions/rating.actions";
 import { getEventById } from "@/actions/event.actions";
 import { Event } from "@/models/event.model";
 import { Rating } from "@/models/rating.model";
@@ -27,37 +32,43 @@ const RatingScreen = () => {
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 
-	useEffect(() => {
-		const fetchData = async () => {
-			try {
-				setIsLoading(true);
-				setError(null);
+	const fetchData = async () => {
+		try {
+			setIsLoading(true);
+			setError(null);
 
-				if (!id) {
-					throw new Error("Event ID is missing");
-				}
-
-				// Fetch event details
-				const eventDetails = await getEventById(Number(id));
-				setEvent(eventDetails);
-
-				// Check if user has already rated this event
-				const userRating = await getUserRating(Number(id));
-				if (userRating) {
-					setExistingRating(userRating);
-					setRating(userRating.value);
-					setComment(userRating.comment);
-				}
-			} catch (err) {
-				setError(err instanceof Error ? err.message : "An error occurred");
-				console.error("Error fetching data:", err);
-			} finally {
-				setIsLoading(false);
+			if (!id) {
+				throw new Error("Event ID is missing");
 			}
-		};
 
+			// Fetch event details
+			const eventDetails = await getEventById(Number(id));
+			setEvent(eventDetails);
+
+			// Check if user has already rated this event
+			const userRating = await getUserRating(Number(id));
+			if (userRating) {
+				setExistingRating(userRating);
+				setRating(userRating.value);
+				setComment(userRating.comment);
+			}
+		} catch (err) {
+			setError(err instanceof Error ? err.message : "An error occurred");
+			console.error("Error fetching data:", err);
+		} finally {
+			setIsLoading(false);
+		}
+	};
+
+	useEffect(() => {
 		fetchData();
 	}, [id]);
+
+	useFocusEffect(
+		React.useCallback(() => {
+			fetchData()
+		}, [existingRating])
+	);
 
 	const handleSubmit = async () => {
 		try {
@@ -67,13 +78,13 @@ const RatingScreen = () => {
 			}
 
 			setIsSubmitting(true);
-			
+
 			const ratingPayload = {
 				value: rating,
 				comment,
 				event_id: Number(id),
 			};
-			
+
 			if (existingRating) {
 				// Update existing rating
 				await updateRating(ratingPayload);
@@ -97,11 +108,44 @@ const RatingScreen = () => {
 			console.error("Error submitting rating:", err);
 			Alert.alert(
 				"Error",
-				`There was an error ${existingRating ? 'updating' : 'submitting'} your rating. Please try again.`
+				`There was an error ${
+					existingRating ? "updating" : "submitting"
+				} your rating. Please try again.`
 			);
 		} finally {
 			setIsSubmitting(false);
 		}
+	};
+
+	const handleDelete = async () => {
+		Alert.alert(
+			"Delete Rating",
+			"Are you sure you want to delete your rating for this event?",
+			[
+				{ text: "Cancel", style: "cancel" },
+				{
+					text: "Delete",
+					style: "destructive",
+					onPress: async () => {
+						try {
+							setIsSubmitting(true);
+							await deleteRating(Number(id));
+							Alert.alert("Deleted", "Your rating has been deleted.", [
+								{
+									text: "OK",
+									onPress: () => router.back(),
+								},
+							]);
+						} catch (err) {
+							console.error("Error deleting rating:", err);
+							Alert.alert("Error", "Failed to delete your rating. Please try again.");
+						} finally {
+							setIsSubmitting(false);
+						}
+					},
+				},
+			]
+		);
 	};
 
 	const renderStars = () => {
@@ -191,6 +235,16 @@ const RatingScreen = () => {
 						</Text>
 					)}
 				</TouchableOpacity>
+
+				{existingRating && (
+					<TouchableOpacity
+						style={[styles.deleteButton, isSubmitting && styles.disabledButton]}
+						onPress={handleDelete}
+						disabled={isSubmitting}
+					>
+						<Text style={styles.deleteButtonText}>Delete Rating</Text>
+					</TouchableOpacity>
+				)}
 			</ScrollView>
 		</View>
 	);
@@ -294,6 +348,18 @@ const styles = StyleSheet.create({
 		color: "#000000",
 		fontSize: 14,
 		fontWeight: "600",
+	},
+	deleteButton: {
+		backgroundColor: "#FF3B30",
+		borderRadius: 8,
+		padding: 14,
+		alignItems: "center",
+		marginTop: 16,
+	},
+	deleteButtonText: {
+		color: "#fff",
+		fontWeight: "bold",
+		fontSize: 16,
 	},
 });
 
